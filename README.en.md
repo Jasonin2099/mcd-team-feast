@@ -76,7 +76,7 @@ flowchart LR
     C["⌨️ CLI / MCP Server<br/>npx feast"]
     A["🤖 AI agent"]
   end
-  S["⚡ Sync server<br/>own VPS · Node SSE<br/>(via Cloudflare)"]
+  S["⚡ Sync server<br/>your VPS · Node SSE<br/>(via Cloudflare)"]
   M["🍔 McDonald's China MCP<br/>mcp.mcd.cn"]
   W <-- "room state SSE / ops POST" --> S
   W -. "offline: link mode" .- W

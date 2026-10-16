@@ -1,5 +1,5 @@
 [Unit]
-Description=麦麦拼单 feast realtime rooms (SSE) 127.0.0.1:8787, feast.ikxing.com
+Description=feast-sync realtime rooms (SSE)
 After=network.target
 
 [Service]

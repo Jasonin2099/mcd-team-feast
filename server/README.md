@@ -22,13 +22,14 @@ PORT=8787 node server/sync-server.js
 # 网页指向本地服务：http://127.0.0.1:8000/?sync=http://127.0.0.1:8787
 ```
 
-## 部署（systemd + nginx，见 `deploy/`）
+## 部署到你的 VPS（systemd + nginx，模板见 `deploy/`）
 ```bash
-mkdir -p /srv/feast-sync /var/lib/feast-sync && chown www-data: /var/lib/feast-sync
-cp server/sync-server.js /srv/feast-sync/sync-server.js && cp server/deploy/feast.service /etc/systemd/system/
-systemctl daemon-reload && systemctl enable --now feast
-cp server/deploy/feast-ratelimit.conf /etc/nginx/conf.d/ && cp server/deploy/feast.ikxing.com.nginx /etc/nginx/sites-enabled/feast.ikxing.com
-# DNS 与 TLS 证书就绪后：
-nginx -t && systemctl reload nginx
+sudo mkdir -p /srv/feast-sync /var/lib/feast-sync && sudo chown www-data: /var/lib/feast-sync
+sudo cp server/sync-server.js /srv/feast-sync/ && sudo cp server/deploy/feast-sync.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now feast-sync
+sudo cp server/deploy/feast-ratelimit.conf /etc/nginx/conf.d/
+sudo cp server/deploy/nginx-site.conf /etc/nginx/sites-enabled/feast-sync.conf   # 改成你的域名和证书路径
+sudo nginx -t && sudo systemctl reload nginx
 ```
-nginx 对 `/events` 关闭缓冲（`proxy_buffering off`），否则 SSE 会被攒住。
+- 前面可以套 Cloudflare 等 CDN（需支持流式响应）；nginx 对 `/events` 关闭缓冲（`proxy_buffering off`），否则 SSE 会被攒住。
+- `ORIGINS` 改成你网页的来源；网页用 `?sync=https://你的域名`，或改 `index.html` 里的 `<meta name="feast-sync">` 指向你的服务。

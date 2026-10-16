@@ -1,5 +1,6 @@
 // 实时拼单房间客户端：EventSource 收状态，fetch POST 发操作。断线自动重连。
-export const SYNC_URL = (() => { try { return new URLSearchParams(location.search).get('sync') || 'https://feast.ikxing.com'; } catch { return 'https://feast.ikxing.com'; } })();
+// 同步服务地址：?sync= 参数 > window.FEAST_SYNC_URL > <meta name="feast-sync"> ；自建时改这里即可
+export const SYNC_URL = (() => { try { return (new URLSearchParams(location.search).get('sync') || globalThis.FEAST_SYNC_URL || document.querySelector('meta[name="feast-sync"]')?.content || '').replace(/\/+$/, ''); } catch { return ''; } })();
 const ck = id => 'feastRoom:' + id;
 export const loadCreds = id => { try { return JSON.parse(localStorage.getItem(ck(id)) || 'null'); } catch { return null; } };
 export const saveCreds = (id, c) => { try { localStorage.setItem(ck(id), JSON.stringify(c)); } catch {} };

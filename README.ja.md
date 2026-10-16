@@ -75,7 +75,7 @@ flowchart LR
     C["⌨️ CLI / MCP Server<br/>npx feast"]
     A["🤖 AI エージェント"]
   end
-  S["⚡ 同期サーバー<br/>自前 VPS · Node SSE<br/>(Cloudflare 経由)"]
+  S["⚡ 同期サーバー<br/>自前の VPS · Node SSE<br/>(Cloudflare 経由)"]
   M["🍔 マクドナルド中国 MCP<br/>mcp.mcd.cn"]
   W <-- "ルーム状態 SSE / 操作 POST" --> S
   W -. "オフライン：リンクモード" .- W

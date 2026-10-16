@@ -1,8 +1,8 @@
 import puppeteer from 'puppeteer-core';
 import { spawn, execSync } from 'node:child_process';
-const SYNC = process.env.SYNC || 'http://127.0.0.1:8787'; const REMOTE = !SYNC.includes('127.0.0.1');
-const BASE = 'http://127.0.0.1:18923/?sync=' + encodeURIComponent(SYNC);
-const OUT = 'shots/' + (process.argv[2] || 'room');
+const SYNC = process.env.SYNC || (process.env.SYNC || 'http://127.0.0.1:8787'); const REMOTE = !SYNC.includes('127.0.0.1');
+const BASE = (process.env.WEB || 'http://127.0.0.1:8000') + '/?sync=' + encodeURIComponent(SYNC);
+const OUT = (process.env.OUT || 'shots') + '/' + (process.argv[2] || 'room');
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? '✓ ' : '✗ ') + m); };
 const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
@@ -45,7 +45,7 @@ ok(await until(H, () => document.querySelectorAll('#listCard .dot.on').length ==
 // 服务器重启 → 客户端自动重连、数据保留
 if (!REMOTE) { execSync('pkill -f "[s]erver/sync-server.js" || true'); await wait(400);
 ok(await until(H, () => !document.querySelector('#modeChip.live'), null, 6000), 'chip leaves live on server loss');
-spawn('node', ['server/sync-server.js'], { cwd: '.', env: { ...process.env, PORT: '8787', DATA: '/tmp/feast-rooms.json' }, detached: true, stdio: 'ignore' }).unref();
+spawn('node', ['server/sync-server.js'], { cwd: process.cwd(), env: { ...process.env, PORT: '8787', DATA: '/tmp/feast-rooms.json' }, detached: true, stdio: 'ignore' }).unref();
 ok(await until(H, () => document.querySelector('#modeChip.live') && document.querySelectorAll('#listCard .person').length === 3, null, 20000), 'reconnected after server restart, state persisted');
 ok(await until(A, () => document.querySelector('#modeChip.live'), null, 20000), 'member reconnected'); }
 // 锁单
@@ -65,8 +65,8 @@ await H.screenshot({ path: OUT + '-host-bill-412.png' });
 const C = await client(); await C.goto(url, { waitUntil: 'load' }); await wait(800);
 ok(await C.evaluate(() => document.getElementById('joinBtn')?.disabled === true), 'late joiner blocked while locked');
 // 离线回退：同步服务不可达
-const D = await client(); await D.goto('http://127.0.0.1:18923/?sync=' + encodeURIComponent('http://127.0.0.1:1'), { waitUntil: 'load' });
-await click(D, '#start'); await wait(200); await D.type('#fMe', 'X'); await click(D, '#goLive'); await wait(1500);
-ok(await D.evaluate(() => !/#r=/.test(location.hash) && /离线/.test(document.querySelector('.chip').textContent) && /连不上/.test(document.getElementById('toast').textContent)), 'fallback to link mode when sync is down');
+const D = await client(); await D.goto((process.env.WEB || 'http://127.0.0.1:8000') + '/?sync=' + encodeURIComponent('http://127.0.0.1:1'), { waitUntil: 'load' });
+await click(D, '#start'); await wait(200); await D.type('#fMe', 'X'); await click(D, '#goLive');
+ok(await until(D, () => /连不上/.test(document.getElementById('toast').textContent) && document.getElementById('toast').classList.contains('on'), null, 12000) && await D.evaluate(() => !/#r=/.test(location.hash) && /离线/.test(document.querySelector('.chip').textContent)), 'fallback to link mode when sync is down (friendly DNS/network message)');
 await b.close();
 console.log(fails.length ? 'FAILS:\n' + fails.join('\n') : 'MULTI-CLIENT OK');

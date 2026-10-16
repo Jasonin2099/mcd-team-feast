@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 const BASE = process.env.BASE || 'http://localhost:18923/index.html';
-const OUT = 'shots'; const prefix = process.argv[2] || 'after';
+const OUT = process.env.OUT || 'shots'; const prefix = process.argv[2] || 'after';
 const b64e = s => Buffer.from(s, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const oldLink = BASE + '#' + b64e(JSON.stringify({ t: '旧链接团', o: '老王', p: [['老王', 'BM001', 1], ['小李', 'DR002', 2]] }));
 const longName = '超级无敌长名字的全栈工程师兼产品经理兼运维兼测试同学-' + 'x'.repeat(20);
