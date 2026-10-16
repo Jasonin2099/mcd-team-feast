@@ -1,6 +1,7 @@
 import puppeteer from 'puppeteer-core';
 import { spawn, execSync } from 'node:child_process';
-const BASE = 'http://127.0.0.1:18923/?sync=' + encodeURIComponent('http://127.0.0.1:8787');
+const SYNC = process.env.SYNC || 'http://127.0.0.1:8787'; const REMOTE = !SYNC.includes('127.0.0.1');
+const BASE = 'http://127.0.0.1:18923/?sync=' + encodeURIComponent(SYNC);
 const OUT = 'shots/' + (process.argv[2] || 'room');
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? '✓ ' : '✗ ') + m); };
@@ -42,15 +43,15 @@ await B.screenshot({ path: OUT + '-member-412.png' });
 await B.close();
 ok(await until(H, () => document.querySelectorAll('#listCard .dot.on').length === 2, null, 5000), 'host sees B go offline');
 // 服务器重启 → 客户端自动重连、数据保留
-execSync('pkill -f "[s]erver/sync-server.js" || true'); await wait(400);
+if (!REMOTE) { execSync('pkill -f "[s]erver/sync-server.js" || true'); await wait(400);
 ok(await until(H, () => !document.querySelector('#modeChip.live'), null, 6000), 'chip leaves live on server loss');
 spawn('node', ['server/sync-server.js'], { cwd: '.', env: { ...process.env, PORT: '8787', DATA: '/tmp/feast-rooms.json' }, detached: true, stdio: 'ignore' }).unref();
 ok(await until(H, () => document.querySelector('#modeChip.live') && document.querySelectorAll('#listCard .person').length === 3, null, 20000), 'reconnected after server restart, state persisted');
-ok(await until(A, () => document.querySelector('#modeChip.live'), null, 20000), 'member reconnected');
+ok(await until(A, () => document.querySelector('#modeChip.live'), null, 20000), 'member reconnected'); }
 // 锁单
 await click(H, '#lockBtn');
 ok(await until(A, () => document.querySelector('.a-menu.locked') && document.querySelector('.item[disabled]') && !document.querySelector('#listCard .qty'), null, 5000), 'member read-only after lock');
-const r = await A.evaluate(async () => { const id = location.hash.slice(3); const c = JSON.parse(localStorage.getItem('feastRoom:' + id)); const res = await fetch('http://127.0.0.1:8787/rooms/' + id + '/op', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op: 'picks', mid: c.mid, key: c.key, picks: [] }) }); return res.status; });
+const r = await A.evaluate(async () => { const id = location.hash.slice(3); const c = JSON.parse(localStorage.getItem('feastRoom:' + id)); const res = await fetch(new URLSearchParams(location.search).get('sync') + '/rooms/' + id + '/op', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op: 'picks', mid: c.mid, key: c.key, picks: [] }) }); return res.status; });
 ok(r === 423, 'server rejects member edit after lock (423)');
 await A.screenshot({ path: OUT + '-locked-member-412-dark.png' });
 await click(A, '#billBtn'); await wait(800);

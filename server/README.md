@@ -24,12 +24,11 @@ PORT=8787 node server/sync-server.js
 
 ## 部署（systemd + nginx，见 `deploy/`）
 ```bash
-useradd --system --no-create-home --shell /usr/sbin/nologin feast-sync
-mkdir -p /opt/feast-sync /var/lib/feast-sync && chown feast-sync: /var/lib/feast-sync
-cp server/sync-server.js /srv/feast-sync/ && cp server/deploy/feast-sync.service /etc/systemd/system/
-systemctl daemon-reload && systemctl enable --now feast-sync
-cp server/deploy/feast.ikxing.com.nginx /etc/nginx/sites-available/feast.ikxing.com
-# DNS 与证书就绪后：
-ln -s /etc/nginx/sites-available/feast.ikxing.com /etc/nginx/sites-enabled/ && nginx -t && systemctl reload nginx
+mkdir -p /srv/feast-sync /var/lib/feast-sync && chown www-data: /var/lib/feast-sync
+cp server/sync-server.js /srv/feast-sync/sync-server.js && cp server/deploy/feast.service /etc/systemd/system/
+systemctl daemon-reload && systemctl enable --now feast
+cp server/deploy/feast-ratelimit.conf /etc/nginx/conf.d/ && cp server/deploy/feast.ikxing.com.nginx /etc/nginx/sites-enabled/feast.ikxing.com
+# DNS 与 TLS 证书就绪后：
+nginx -t && systemctl reload nginx
 ```
 nginx 对 `/events` 关闭缓冲（`proxy_buffering off`），否则 SSE 会被攒住。
