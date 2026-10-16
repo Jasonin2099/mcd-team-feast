@@ -19,7 +19,7 @@ export const I18N = {
     footer: '麦当劳程序员节创意开发大赛参赛作品 · 非麦当劳官方产品 · 网页数据为虚构示例',
     back: '返回', appTitle: '拼单', tabOrder: '点餐', tabBill: '账单',
     teamT: '团信息', teamName: '团名', organizer: '发起人', meT: '我是谁', mePh: '你的名字，例如 小李(前端)', menuT: '菜单', menuHint: '点一下加一份',
-    listT: '当前团', people: '人', headcount: '人数', items: '份', emptyT: '还没人点餐', emptyD: '先填名字点几样，然后把链接发到群里。', trySample: '载入示例',
+    listT: '当前团', people: '人', headcount: '人数', items: '份', emptyT: '还没人点餐', emptyD: '先填名字点几样，<wbr>再把链接发到群里。', trySample: '载入示例',
     invite: '复制邀请链接', toBill: '去结算', clear: '清空', confirmClear: '确定清空所有人的点餐吗？',
     billEmpty: '还没人点餐，先去点几样吧。', saveImg: '保存图片', copyMsg: '复制收款消息', share: '分享', svg: 'SVG',
     sumPaid: '实付', sumAvg: '人均', sumOff: '优惠', sumCoupons: '用券', noCoupon: '不用券', tried: '已比较 {n} 种用券组合',

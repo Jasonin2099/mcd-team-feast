@@ -65,23 +65,33 @@ async function copyText(s) {
 }
 
 // ---------- 视图与历史：home → app(order) → app(bill)，各自记住滚动位置 ----------
-const scrollMem = {}; let cur = 'home'; let homeLang = null;
+// 每个历史条目一个 key（history.state.k），滚动位置存 sessionStorage；Tab 用 replaceState，下钻用 pushState
+let cur = 'home'; let homeLang = null;
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-const key = (v, tab) => v === 'app' ? 'app:' + tab : 'home';
+const scrollStore = (() => { try { return JSON.parse(sessionStorage.getItem('feast-scroll') || '{}'); } catch { return {}; } })();
+const tabScroll = {};
+const newKey = () => Math.random().toString(36).slice(2, 10);
+let curKey = history.state?.k || newKey();
 let tab = 'order';
-function show(v, tb = tab) {
-  scrollMem[key(cur === 'home' ? 'home' : 'app', tab)] = scrollY;
+function saveScroll() { scrollStore[curKey] = scrollY; try { sessionStorage.setItem('feast-scroll', JSON.stringify(scrollStore)); } catch {} }
+addEventListener('scroll', () => requestAnimationFrame(saveScroll), { passive: true });
+const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+function animate(kind) { const el = cur === 'home' ? $('home') : document.querySelector('#app .wrap.app'); if (!el) return; if (reduce.matches) return; el.classList.remove('nv-push', 'nv-back', 'nv-tab'); void el.offsetWidth; el.classList.add('nv-' + kind); }
+function show(v, tb = tab, y = 0, kind) {
   cur = v; tab = tb;
-  $('home').hidden = v !== 'home'; $('app').hidden = v !== 'app';
+  $('home').hidden = v !== 'home'; $('app').hidden = v !== 'app'; document.body.classList.toggle('in-app', v === 'app');
   if (v === 'home') { if (homeLang !== LANG) renderHome(); } else renderApp();
-  const y = scrollMem[key(v, tb)] || 0; scrollTo(0, y); requestAnimationFrame(() => scrollTo(0, y));
+  scrollTo(0, y); requestAnimationFrame(() => scrollTo(0, y));
+  if (kind) animate(kind);
 }
-function go(v, tb = 'order') { history.pushState({ v, tab: tb }, '', location.pathname + (state ? '#' + encodeState(state) : '')); show(v, tb); }
-addEventListener('popstate', e => { const s = e.state || { v: 'home' }; show(s.v, s.tab || 'order'); });
+const url = () => location.pathname + (state && cur !== 'home' ? '#' + encodeState(state) : location.hash);
+function go(v, tb = 'order') { saveScroll(); curKey = newKey(); history.pushState({ v, tab: tb, k: curKey }, '', location.pathname + (state ? '#' + encodeState(state) : '')); show(v, tb, 0, 'push'); }
+function switchTab(tb) { tabScroll[tab] = scrollY; history.replaceState({ ...(history.state || {}), v: 'app', tab: tb, k: curKey }, '', location.href); show('app', tb, tabScroll[tb] || 0, 'tab'); }
+addEventListener('popstate', e => { const s = e.state || { v: 'home' }; if (s.ov) return; curKey = s.k || newKey(); show(s.v, s.tab || 'order', scrollStore[curKey] || 0, 'back'); });
 function saveHash() {
   if (!state) return;
   const h = '#' + encodeState(state);
-  history.replaceState(history.state, '', location.pathname + h);
+  history.replaceState({ ...(history.state || {}), k: curKey }, '', location.pathname + h);
   try { localStorage.feastLast = h.slice(1); } catch {}
 }
 
@@ -89,7 +99,7 @@ function saveHash() {
 let sampleSVG = '';
 async function buildSample() {
   const r = await compute({ t: '1024 程序员节下午茶', o: '老王(后端)', p: SAMPLE });
-  sampleSVG = renderSVG({ team: r.team, bill: r.bill, plan: r.best, mode: 'mock', now: MOCK.now }, 'git');
+  sampleSVG = renderSVG({ team: r.team, bill: r.bill, plan: r.best, mode: 'mock', now: MOCK.now }, narrow ? 'receipt' : 'git');
 }
 function renderHome() {
   homeLang = LANG;
@@ -107,13 +117,13 @@ function renderHome() {
         </div>
         <p style="margin:16px 0 0"><span class="badge">🔒 ${esc(t('privacy'))}</span></p>
       </div>
-      <figure class="sample" style="margin:0">${sampleSVG}<figcaption class="cap">${esc(t('sampleCap'))}</figcaption></figure>
+      <figure class="sample${narrow ? ' clip' : ''}" style="margin:0"><div class="sample-in">${sampleSVG}</div><figcaption class="cap">${esc(t('sampleCap'))}</figcaption></figure>
     </section>
     <img class="hero-art" src="assets/hero.webp" width="1280" height="714" alt="mcd-team-feast pixel art" loading="lazy">
   </div>
   <section class="block"><div class="wrap">
     <h2>${esc(t('howT'))}</h2>
-    <div class="grid3">${[1, 2, 3].map(i => `<div class="card"><span class="step-n">${i}</span><h3>${esc(t('how' + i + 't'))}</h3><p>${esc(t('how' + i + 'd'))}</p></div>`).join('')}</div>
+    <div class="grid3 steps">${[1, 2, 3].map(i => `<div class="card"><span class="step-n">${i}</span><h3>${esc(t('how' + i + 't'))}</h3><p>${esc(t('how' + i + 'd'))}</p></div>`).join('')}</div>
   </div></section>
   <section class="block"><div class="wrap">
     <h2>${esc(t('cmpT'))}</h2>
@@ -167,42 +177,43 @@ function addItem(code, delta) {
 function renderApp() {
   if (!state) state = DEFAULT();
   $('app').innerHTML = `
-  <div class="appbar"><div class="wrap">
-    <button class="btn ghost" id="back" style="min-height:36px;padding:6px 14px">‹ ${esc(t('back'))}</button>
+  <header class="appbar"><div class="wrap">
+    <button class="icon-btn back" id="back" aria-label="${esc(t('back'))}">‹</button>
     <div class="title" id="apptitle"></div>
-  </div>
-  <div class="tabs"><div class="seg" role="tablist">
-    <button role="tab" data-tab="order" aria-pressed="${tab === 'order'}">${esc(t('tabOrder'))}</button>
-    <button role="tab" data-tab="bill" aria-pressed="${tab === 'bill'}">${esc(t('tabBill'))}</button>
-  </div></div></div>
+    <div class="seg" role="tablist">
+      <button role="tab" data-tab="order" aria-pressed="${tab === 'order'}">${esc(t('tabOrder'))}</button>
+      <button role="tab" data-tab="bill" aria-pressed="${tab === 'bill'}">${esc(t('tabBill'))}</button>
+    </div>
+  </div></header>
   <div class="wrap app" id="appbody"></div>
   <div class="bar"><div class="wrap" id="appbar"></div></div>`;
   $('back').onclick = () => history.back();
-  document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { if (b.dataset.tab === tab) return; if (b.dataset.tab === 'bill') go('app', 'bill'); else history.back(); });
+  document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { if (b.dataset.tab === tab) return; switchTab(b.dataset.tab); });
   tab === 'order' ? renderOrder() : renderBill();
 }
 function renderOrder() {
   $('apptitle').textContent = state.t || t('appTitle');
   const counts = Object.fromEntries(state.p.filter(x => x[0] === me).map(x => [x[1], x[2]]));
   let cat = '';
-  $('appbody').innerHTML = `<div class="cols"><div>
-  <div class="card">
+  $('appbody').innerHTML = `<div class="order-grid">
+  <div class="card a-team">
     <div class="card-h"><h3>${esc(t('teamT'))}</h3><span class="badge">🔒 ${esc(t('privacy'))}</span></div>
     <div class="row">
       <label class="field"><span>${esc(t('teamName'))}</span><input type="text" id="fTitle" maxlength="40" value="${esc(state.t)}"></label>
       <label class="field"><span>${esc(t('organizer'))}</span><input type="text" id="fOrg" maxlength="24" value="${esc(state.o)}"></label>
     </div>
   </div>
-  <div class="card">
+  <div class="card a-me">
     <div class="card-h"><h3>${esc(t('meT'))}</h3></div>
     <input type="text" id="fMe" maxlength="24" placeholder="${esc(t('mePh'))}" value="${esc(me)}">
   </div>
-  <div class="card">
+  <div class="card a-list" id="listCard"></div>
+  <div class="card a-menu">
     <div class="card-h"><h3>${esc(t('menuT'))}</h3><span class="muted small">${esc(t('menuHint'))}</span></div>
     <div class="menu" id="menu">${MOCK.menu.map(m => (m.category !== cat ? `<div class="cat">${esc(cat = m.category)}</div>` : '') +
       `<button class="item" data-c="${m.code}"><b>${esc(m.name)}</b><small>¥${m.price.toFixed(2)} · ${m.kcal} kcal</small>${counts[m.code] ? `<span class="q">${counts[m.code]}</span>` : ''}</button>`).join('')}</div>
   </div>
-  </div><div class="side"><div class="card" id="listCard"></div></div></div>`;
+  </div></div>`;
   renderList();
   $('appbar').innerHTML = `<button class="btn" id="inviteBtn"><span>${esc(t('invite'))}</span></button><button class="btn primary" id="billBtn"><span>${esc(t('toBill'))} →</span></button>`;
   $('fTitle').oninput = e => { state.t = e.target.value; $('apptitle').textContent = state.t || t('appTitle'); saveHash(); };
@@ -229,7 +240,7 @@ function renderList() {
       return `<div class="person"><div class="person-h"><span class="n">${esc(w)}</span><span>¥${Y(sub)}</span></div>` + arr.map(x => { const m = MOCK.menu.find(mm => mm.code === x.c);
         return `<div class="line"><span class="nm">${esc(m.name)}</span><span class="pr">¥${(m.price * x.q).toFixed(2)}</span><span class="qty"><button data-i="${x.i}" data-d="-1" aria-label="-">−</button><span>${x.q}</span><button data-i="${x.i}" data-d="1" aria-label="+">+</button></span></div>`; }).join('') + '</div>';
     }).join('') + `<p style="margin:10px 0 0;text-align:right"><button class="link" id="clearBtn">${esc(t('clear'))}</button></p>`
-    : `<div class="empty"><b>${esc(t('emptyT'))}</b>${esc(t('emptyD'))}<br><button class="link" id="sampleBtn" style="margin-top:10px">${esc(t('trySample'))}</button></div>`);
+    : `<div class="empty"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><b>${esc(t('emptyT'))}</b><span class="bal">${esc(t('emptyD')).replace('&lt;wbr&gt;', '<wbr>')}</span><br><button class="link" id="sampleBtn" style="margin-top:10px">${esc(t('trySample'))}</button></div>`);
   $('listCard').onclick = e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.id === 'sampleBtn') { state.p = SAMPLE.map(x => [...x]); if (!state.o) state.o = '老王(后端)'; saveHash(); renderOrder(); return; }
@@ -239,7 +250,8 @@ function renderList() {
 }
 
 // ---------- 账单 ----------
-let cardTheme = 'git', lastSVG = '', lastMsg = '';
+const narrow = matchMedia('(max-width: 600px)').matches;
+let cardTheme = narrow ? 'receipt' : 'git', lastSVG = '', lastMsg = '';
 async function renderBill() {
   $('apptitle').textContent = state.t || t('appTitle');
   const r = await compute(state);
@@ -266,6 +278,7 @@ async function renderBill() {
   </div>
   <details><summary>${esc(t('devT'))} · ${esc(t('devCli'))}</summary><div><pre>${esc(cli)}</pre><button class="link" id="svgBtn">⬇ ${esc(t('svg'))}</button></div></details></div></div>`;
   $('appbar').innerHTML = `<button class="btn primary" id="imgBtn"><span>${esc(t('saveImg'))}</span></button><button class="btn" id="msgBtn"><span>${esc(t('copyMsg'))}</span></button><button class="btn" id="shareBtn" style="flex:0 0 auto"><span>${esc(t('share'))}</span></button>`;
+  document.querySelector('.preview').onclick = () => zoomSVG(lastSVG);
   $('themes').onclick = e => { const b = e.target.closest('button'); if (!b) return; cardTheme = b.dataset.th; renderBill(); };
   $('imgBtn').onclick = e => act(e.currentTarget, saveImage);
   $('msgBtn').onclick = e => act(e.currentTarget, async () => { await copyText(lastMsg); return t('copied'); });
@@ -281,6 +294,12 @@ function svgToPngBlob(svg) {
   });
 }
 function download(name, blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+function zoomSVG(svg) {
+  const ov = $('overlay'); ov.innerHTML = `<div class="zoom">${svg}</div><button class="btn" id="ovClose">${esc(t('closeOv'))}</button>`;
+  ov.hidden = false; history.pushState({ ...(history.state || {}), ov: 1 }, '', location.href);
+  $('ovClose').onclick = () => history.back();
+  addEventListener('popstate', () => { ov.hidden = true; ov.innerHTML = ''; }, { once: true });
+}
 function showOverlay(blob) {
   const ov = $('overlay'); const u = URL.createObjectURL(blob);
   ov.innerHTML = `<img src="${u}" alt="receipt"><p>${esc(t('longPress'))}</p><button class="btn" id="ovClose">${esc(t('closeOv'))}</button>`;
@@ -312,19 +331,21 @@ function applyLang() {
 }
 $('langs').onclick = e => { const l = e.target.dataset.l; if (!l || l === LANG) return; LANG = l; try { localStorage.feastLang = l; } catch {} applyLang(); show(cur, tab); };
 const THEMES = ['auto', 'light', 'dark', 'gold'];
+function closeSheet() { const sh = $('themePop'); if (sh.hidden) return; sh.classList.remove('on'); setTimeout(() => { sh.hidden = true; }, reduce.matches ? 0 : 180); }
 $('themeBtn').onclick = e => {
-  e.stopPropagation(); const pop = $('themePop'); if (!pop.hidden) { pop.hidden = true; return; }
+  e.stopPropagation(); const sh = $('themePop');
   const curT = (() => { try { return localStorage.feastTheme || 'auto'; } catch { return 'auto'; } })();
-  pop.innerHTML = THEMES.map(k => `<button data-k="${k}" aria-pressed="${k === curT}">${esc(t({ auto: 'thAuto', light: 'thLight', dark: 'thDark', gold: 'thGold' }[k]))}</button>`).join('');
-  pop.hidden = false;
+  sh.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(t('thAuto'))}"><i class="grab"></i>${THEMES.map(k => `<button data-k="${k}" aria-pressed="${k === curT}">${esc(t({ auto: 'thAuto', light: 'thLight', dark: 'thDark', gold: 'thGold' }[k]))}<span>${k === curT ? '✓' : ''}</span></button>`).join('')}</div>`;
+  sh.hidden = false; requestAnimationFrame(() => sh.classList.add('on'));
+  history.pushState({ ...(history.state || {}), ov: 1 }, '', location.href);
+  addEventListener('popstate', closeSheet, { once: true });
 };
-$('themePop').onclick = e => { const k = e.target.dataset.k; if (!k) return; try { localStorage.feastTheme = k; } catch {} if (k === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = k; $('themePop').hidden = true; };
-document.addEventListener('click', e => { if (!e.target.closest('#themePop')) $('themePop').hidden = true; });
+$('themePop').onclick = e => { const b = e.target.closest('[data-k]'); if (b) { const k = b.dataset.k; try { localStorage.feastTheme = k; } catch {} if (k === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = k; } if (b || e.target === $('themePop')) history.back(); };
 fetch('https://api.github.com/repos/Jasonin2099/mcd-team-feast').then(r => r.ok ? r.json() : null).then(j => { if (j && Number.isFinite(j.stargazers_count)) $('stars').textContent = j.stargazers_count; }).catch(() => {});
 
 // ---------- 启动 ----------
 applyLang();
 await buildSample();
-if (hadLink) { history.replaceState({ v: 'home' }, '', location.pathname); history.pushState({ v: 'app', tab: 'order' }, '', location.pathname + '#' + encodeState(state)); show('app', 'order'); }
-else { history.replaceState({ v: 'home' }, '', location.pathname); show('home'); }
+if (hadLink) { history.replaceState({ v: 'home', k: newKey() }, '', location.pathname); history.pushState({ v: 'app', tab: 'order', k: curKey }, '', location.pathname + '#' + encodeState(state)); show('app', 'order', scrollStore[curKey] || 0); }
+else { history.replaceState({ v: 'home', k: curKey }, '', location.pathname); show('home', 'order', scrollStore[curKey] || 0); }
 window.__feast = { encodeState, decodeState, get state() { return state; } };

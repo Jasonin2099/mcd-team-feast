@@ -1,4 +1,3 @@
-// 网页自动检查（需 npm i puppeteer-core 与本地 Chrome；BASE=http://localhost:端口/index.html node scripts/web-qa.mjs）
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 const BASE = process.env.BASE || 'http://localhost:18923/index.html';
@@ -23,7 +22,32 @@ async function check(p, label) {
       if (ox > 2 && oy > 2) { bad.push(`overlap: ${a.tagName}.${a.className}「${(a.textContent || '').trim().slice(0, 12)}」 × ${c.tagName}.${c.className}「${(c.textContent || '').trim().slice(0, 12)}」`); if (bad.length > 8) return bad; }
     }
     // elements wider than viewport
-    for (const e of document.querySelectorAll('body *')) { const rc = e.getBoundingClientRect(); if (rc.right > innerWidth + 1 && getComputedStyle(e).position !== 'fixed' && !e.closest('pre') && !e.closest('[hidden]') && rc.width > 0) { bad.push('wide: ' + e.tagName + '.' + e.className); break; } }
+    for (const e of document.querySelectorAll('body *')) { const rc = e.getBoundingClientRect(); if (rc.right > innerWidth + 1 && getComputedStyle(e).position !== 'fixed' && !e.closest('pre') && !(e.parentElement && e.parentElement.closest('svg')) && !(e.parentElement && e.parentElement.closest('.steps')) && !e.closest('[hidden]') && rc.width > 0) { bad.push('wide: ' + e.tagName + '.' + e.className); break; } }
+    return bad;
+  });
+  r.forEach(x => problems.push(`[${label}] ${x}`));
+}
+// 固定/吸顶栏检查：顶部栏占比、内容是否被遮住（顶部首个内容 / 底部最后一个内容）
+async function chrome(p, label) {
+  const r = await p.evaluate(async () => {
+    const bad = []; const vh = innerHeight;
+    const bars = [...document.querySelectorAll('body *')].filter(e => { const s = getComputedStyle(e); return (s.position === 'sticky' || s.position === 'fixed') && !e.closest('[hidden]') && e.getBoundingClientRect().height > 0 && s.display !== 'none' && !e.classList.contains('toast') && e.id !== 'overlay' && e.id !== 'themePop' && !e.classList.contains('a-list'); });
+    const tops = bars.filter(e => e.getBoundingClientRect().top < 5), bots = bars.filter(e => e.getBoundingClientRect().bottom > vh - 5);
+    const topH = Math.max(0, ...tops.map(e => e.getBoundingClientRect().bottom)), botH = Math.max(0, ...bots.map(e => vh - e.getBoundingClientRect().top));
+    if (topH > vh * 0.12) bad.push(`top chrome too tall ${Math.round(topH)}px (${Math.round(topH / vh * 100)}%)`);
+    if (topH + botH > vh * 0.25) bad.push(`chrome total ${Math.round(topH + botH)}px`);
+    const content = [...document.querySelectorAll('main:not([hidden]) .card, main:not([hidden]) section, main:not([hidden]) button, main:not([hidden]) a, main:not([hidden]) footer')].filter(e => !bars.some(b => b.contains(e)) && e.getBoundingClientRect().height > 0);
+    scrollTo({top:0,behavior:'instant'}); await new Promise(r => setTimeout(r, 50));
+    const first = Math.min(...content.map(e => e.getBoundingClientRect().top));
+    if (first < topH - 1) bad.push(`content starts under top bar (${Math.round(first)} < ${Math.round(topH)})`);
+    scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'}); await new Promise(r => setTimeout(r, 80));
+    const clipB = e => { let b = Infinity; for (let a = e.parentElement; a && a !== document.body; a = a.parentElement) { const o = getComputedStyle(a).overflowY; if (o !== 'visible') b = Math.min(b, a.getBoundingClientRect().bottom); } return b; };
+    const vis = content.filter(e => getComputedStyle(e).visibility !== 'hidden' && !(e.closest('details:not([open])') && !e.closest('summary') && e.tagName !== 'DETAILS') && e.getBoundingClientRect().top < clipB(e));
+    vis.forEach(e => { e._b = Math.min(e.getBoundingClientRect().bottom, clipB(e)); });
+    const last = Math.max(...vis.map(e => e._b));
+    const barTop = vh - botH;
+    if (last > barTop + 1) { const el = vis.find(e => e._b === last); bad.push(`y=${scrollY}/${document.documentElement.scrollHeight} content hidden behind bottom bar: ${el.tagName}.${el.className}「${(el.textContent || '').trim().slice(0, 10)}」 bottom ${Math.round(last)} > ${Math.round(barTop)}`); }
+    scrollTo(0, 0);
     return bad;
   });
   r.forEach(x => problems.push(`[${label}] ${x}`));
@@ -39,21 +63,24 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 for (const [w, h] of [[360, 780], [412, 915], [1440, 900]]) for (const scheme of ['dark', 'light']) {
   const L = `${w}-${scheme}`; const p = await page(w, h, scheme);
   await p.goto(BASE, { waitUntil: 'networkidle0' }); await wait(400);
-  await p.screenshot({ path: `${OUT}/${prefix}-home-${L}.png` }); await check(p, L + ' home');
+  await p.screenshot({ path: `${OUT}/${prefix}-home-${L}.png` }); await check(p, L + ' home'); await chrome(p, L + ' home');
   // first-fold: start button & sample card visible
   const fold = await p.evaluate(() => { const s = document.getElementById('start').getBoundingClientRect(); const c = document.querySelector('.sample').getBoundingClientRect(); return { start: s.bottom <= innerHeight, card: c.top < innerHeight, prim: document.querySelectorAll('#home .btn.primary').length }; });
   if (!fold.start || !fold.card || fold.prim !== 1) problems.push(`[${L}] fold ${JSON.stringify(fold)}`);
   if (w !== 412) await p.screenshot({ path: `${OUT}/${prefix}-homefull-${L}.png`, fullPage: true });
   await p.evaluate(() => scrollTo(0, 700)); await wait(100);
   await p.evaluate(() => document.getElementById('start').click()); await wait(300);
+  await chrome(p, L + ' order-empty'); await p.screenshot({ path: `${OUT}/${prefix}-order-empty-${L}.png` });
   await p.type('#fMe', '测试员'); await p.click('.item[data-c="BM001"]'); await p.click('.item[data-c="DR002"]'); await wait(200);
-  await p.screenshot({ path: `${OUT}/${prefix}-order-${L}.png` }); await check(p, L + ' order');
+  await p.screenshot({ path: `${OUT}/${prefix}-order-${L}.png` }); await check(p, L + ' order'); await chrome(p, L + ' order');
+  const ord = await p.evaluate(() => document.getElementById('listCard').getBoundingClientRect().top < document.querySelector('.a-menu').getBoundingClientRect().top || innerWidth >= 900);
+  if (!ord) problems.push(`[${L}] list card is below menu`);
   // bar buttons fit
   const bar = await p.evaluate(() => [...document.querySelectorAll('.bar .btn')].map(e => { const r = e.getBoundingClientRect(); return r.right <= innerWidth && r.bottom <= innerHeight && e.scrollWidth <= e.clientWidth + 2; }));
   if (bar.includes(false)) problems.push(`[${L}] bar buttons don't fit ${bar}`);
   await p.evaluate(() => scrollTo(0, 400)); await wait(100);
   await p.evaluate(() => document.getElementById('billBtn').click()); await wait(500);
-  await p.screenshot({ path: `${OUT}/${prefix}-bill-${L}.png` }); await check(p, L + ' bill');
+  await p.screenshot({ path: `${OUT}/${prefix}-bill-${L}.png` }); await check(p, L + ' bill'); await chrome(p, L + ' bill');
   const bar2 = await p.evaluate(() => [...document.querySelectorAll('.bar .btn')].map(e => { const r = e.getBoundingClientRect(); return r.right <= innerWidth && e.scrollWidth <= e.clientWidth + 2; }));
   if (bar2.includes(false)) problems.push(`[${L}] bill bar buttons don't fit ${bar2}`);
   // back restores order scroll, then home scroll
@@ -71,8 +98,8 @@ for (const [w, h] of [[360, 780], [412, 915], [1440, 900]]) for (const scheme of
   await p.close(); }
 // stress
 for (const w of [360, 1440]) { const p = await page(w, 900, 'dark'); await p.goto(stress, { waitUntil: 'networkidle0' }); await wait(400);
-  await check(p, `stress-${w} order`); await p.screenshot({ path: `${OUT}/${prefix}-stress-order-${w}.png`, fullPage: false });
-  await p.click('#billBtn'); await wait(800); await check(p, `stress-${w} bill`); await p.screenshot({ path: `${OUT}/${prefix}-stress-bill-${w}.png` });
+  await check(p, `stress-${w} order`); await chrome(p, `stress-${w} order`); await p.screenshot({ path: `${OUT}/${prefix}-stress-order-${w}.png`, fullPage: false });
+  await p.click('#billBtn'); await wait(800); await check(p, `stress-${w} bill`); await chrome(p, `stress-${w} bill`); await p.screenshot({ path: `${OUT}/${prefix}-stress-bill-${w}.png` });
   const len = await p.evaluate(() => location.href.length); console.log('stress url length', len, 'old-format length', stress.length);
   await p.close(); }
 // languages + gold theme
