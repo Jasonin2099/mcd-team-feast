@@ -15,7 +15,7 @@
 
 <img src="assets/feast-receipt.png" width="720" alt="麦麦拼单账单卡示例" />
 
-<sub>↑ 由 `npx github:Jasonin2099/mcd-team-feast demo --mock` 实际生成（示例数据）</sub>
+<sub>↑ 接入真实麦当劳 MCP，在上海福州路餐厅实时计价生成（成员为化名，仅计价未下单）</sub>
 
 </div>
 
@@ -50,7 +50,7 @@
 npx github:Jasonin2099/mcd-team-feast demo --mock
 ```
 
-当前目录会生成 `feast-receipt.png`（本机装有 Chrome 时）、`feast-receipt.svg` 和 `feast-receipt.html`。
+当前目录会生成（mock 数据为虚构示例） `feast-receipt.png`（本机装有 Chrome 时）、`feast-receipt.svg` 和 `feast-receipt.html`。
 
 ### 2. 接入真实麦当劳 MCP
 
@@ -66,11 +66,12 @@ export MCD_MCP_TOKEN=你的token   # 切勿提交到仓库
 ```bash
 alias feast="npx -y github:Jasonin2099/mcd-team-feast"
 
-feast stores 张江               # 查门店，拿到门店编码
-feast new --store <门店编码> --title "1024 程序员节下午茶" --by 老王
-feast pick 小李 麦辣鸡腿堡
-feast pick 小李 可乐
-feast pick 阿杰 拿铁 2
+feast stores 福州路 --city 上海   # 查门店，拿到门店编码
+feast new --store 1450441 --near 福州路 --city 上海 --title "1024 程序员节下午茶" --by 老王
+feast menu                      # 菜单随时段变化（早餐/正餐）
+feast pick 小李 麦咖啡™美式
+feast pick 小李 脆薯饼
+feast pick 阿杰 派 2
 feast list                      # 看看谁还没报名
 feast checkout --out ./out      # 凑单 + 最优券 + 人均 + 账单卡
 feast order --confirm 3f9a1c    # 核对无误后才下单，返回支付链接
@@ -87,14 +88,14 @@ feast order --confirm 3f9a1c    # 核对无误后才下单，返回支付链接
 | 命令 | 说明 |
 |---|---|
 | `demo` | 一键演示：开团 → 5 人点餐 → 自动用券 → 分账 → 账单卡 |
-| `stores [关键词]` | 查询附近门店 |
+| `stores [关键词] [--city 城市]` | 查询门店 |
 | `new --store <编码> [--title] [--by]` | 开团并缓存菜单 |
 | `menu` | 查看菜单 |
 | `pick <名字> <餐品> [数量]` | 报名点餐 |
 | `drop <名字>` | 删除某人的选择 |
 | `list` | 查看当前团 |
 | `checkout [--out 目录]` | 结算并生成账单卡 |
-| `order --confirm <确认码>` | 真正下单（必须确认） |
+| `order --confirm <确认码> [--takeway take-in-store\|eat-in]` | 真正下单（必须确认，默认外带自提） |
 | `tools` | 列出 MCP 工具及参数 |
 
 所有命令都支持 `--mock`；团的状态保存在当前目录的 `.feast.json`（可用 `--file` 指定）。

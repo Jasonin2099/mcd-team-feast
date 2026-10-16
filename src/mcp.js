@@ -35,7 +35,7 @@ export class McpClient {
     if (r.isError) throw new Error(`工具 ${name} 返回错误: ${contentText(r)}`);
     if (r.structuredContent) return r.structuredContent;
     const t = contentText(r);
-    try { return JSON.parse(t); } catch { return { text: t }; }
+    return extractJson(t);
   }
 }
 export function contentText(r) { return (r.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n'); }
@@ -45,4 +45,12 @@ export function parseResponse(text, id) {
   // SSE: 取 data: 行里 id 匹配的消息
   const msgs = t.split(/\n\n+/).map(ev => ev.split('\n').filter(l => l.startsWith('data:')).map(l => l.slice(5).trim()).join('\n')).filter(Boolean).map(d => JSON.parse(d));
   return msgs.find(m => m.id === id) || msgs[msgs.length - 1] || {};
+}
+
+// 文本里常是“字段说明 + 原始 JSON”，取最后一个 {"success" 开头的 JSON
+export function extractJson(t) {
+  try { return JSON.parse(t); } catch {}
+  const i = t.lastIndexOf('{"success"');
+  if (i >= 0) { try { return JSON.parse(t.slice(i)); } catch {} }
+  return { text: t };
 }

@@ -10,12 +10,16 @@ description: 麦麦拼单 —— 帮团队/工作群发起麦当劳团餐或下�
 - 没有 Token 时，所有命令加 `--mock` 使用示例数据演示。
 
 ## 工作流程
-1. **确认门店**：调用 `query-nearby-stores`（或 `npx github:Jasonin2099/mcd-team-feast stores <地址>`），让用户选择门店。
+1. **确认门店**：调用 `query-nearby-stores`（`beType=1, searchType=2, city, keyword`，或 `feast stores <关键词> --city <城市>`），让用户选择门店。
 2. **开团**：`feast new --store <门店编码> --title "<团名>" --by <发起人>`，内部调用 `query-meals` 缓存菜单。
 3. **收集点餐**：逐个记录 `feast pick <名字> <餐品> [数量]`。用户在群聊里说“我要巨无霸+可乐”时，拆成多条 pick。不确定的餐品先 `feast menu` 或调用 `query-meal-detail` 确认。
 4. **结算**：`feast checkout --out ./out`。内部调用 `query-store-coupons` 拿可用券，对每种券组合调用 `calculate-price`，选出实付最低的方案，按原价占比分摊优惠，生成 `feast-receipt.png/svg/html`。
 5. **展示**：把终端账单和账单卡发给用户，提醒“价格以麦当劳实时结果为准”。
 6. **下单（可选，必须人工确认）**：只有在用户明确说“确认下单”后，才执行 `feast order --confirm <确认码>`（调用 `create-order`，返回支付链接，由用户自行支付）。**绝不在未经确认时下单。**
+
+## 注意
+- 套餐类餐品计价可能需要 `roundList`（套餐子项，见 `query-meal-detail`）；CLI 目前对单品最稳。
+- 菜单随时段（早餐/正餐）变化。
 
 ## 小贴士
 - 优惠券不够？可先调用 `available-coupons` 看麦麦省可领券，经用户同意后用 `auto-bind-coupons` 一键领取再结算。

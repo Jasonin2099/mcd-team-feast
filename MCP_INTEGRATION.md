@@ -27,6 +27,26 @@
 | `campaign-calendar` | 查询当月活动，提示是否有节日专属优惠 | `SKILL.md` |
 | `list-nutrition-foods` | 为控卡同事提供热量参考 | `SKILL.md` |
 
+## 实际调用参数（以 `tools/list` 返回的 schema 为准，到店自取场景）
+
+| Tool | 关键入参 | 解析的返回字段 |
+|---|---|---|
+| `query-nearby-stores` | `beType=1, searchType=2, city, keyword` | `data[].storeCode / storeName / address / distance` |
+| `query-meals` | `storeCode, orderType=1, beType=1` | `data.categories[].meals[].code` + `data.meals{code}.name / currentPrice / originalPrice / discountType` |
+| `query-store-coupons` | `storeCode, orderType=1, beType=1` | `data[].couponId / couponCode / title / products[].productCode`（同一券 ID 多张券码按 ID 分组） |
+| `calculate-price` | `storeCode, orderType=1, beType=1, items[{productCode, quantity, couponId?, couponCode?}]` | `data.productOriginalPrice / discount / price`（单位：分），`takeWayList[]` |
+| `create-order` | 同上 + `takeWayCode`（取自 `takeWayList[].code`，如 `take-in-store`） | 订单号 / 支付链接 |
+| `now-time-info` | 无 | `data.formatted` |
+
+说明：
+- 优惠券是**挂在商品行上**的：本项目会为每张候选券拆出 1 份对应商品，带上 `couponId/couponCode` 交给 `calculate-price` 计价。
+- 菜单中“随单购早餐卡/麦金卡优惠”价需额外购卡才能享受，拼单场景按原价计。
+- 分账以 `calculate-price` 的实付为准：各人菜单价之和与实付的差额作为优惠按比例分摊，保证 Σ每人应付 = 实付。
+
+## 真实运行样例（2026-10-16，上海福州路餐厅，仅计价未下单）
+
+5 人点 10 件早餐单品：原价 ¥139.50，门店活动价优惠 ¥14.20，实付 **¥125.30**，人均 ¥25.06（账单卡见 README）。
+
 ## 调用流程
 
 ```mermaid

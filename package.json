@@ -5,7 +5,7 @@
   "type": "module",
   "bin": { "mcd-team-feast": "bin/cli.js", "feast": "bin/cli.js" },
   "files": ["bin", "src", "SKILL.md", "mcp-config.example.json"],
-  "scripts": { "test": "node --test test/", "demo": "node bin/cli.js demo --mock --out assets" },
+  "scripts": { "test": "node --test test/", "demo": "node bin/cli.js demo --mock --out out" },
   "engines": { "node": ">=18" },
   "keywords": ["mcdonalds", "mcp", "skill", "1024", "team-order", "麦当劳", "拼单"],
   "license": "MIT"

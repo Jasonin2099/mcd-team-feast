@@ -34,7 +34,10 @@ async function checkout(p, team, opt, out) {
   const items = mergeItems(team.picks);
   if (!items.length) throw new Error('还没人点餐，先 feast pick <名字> <餐品>');
   const { best, tried } = await bestCoupons((its, cs) => p.price(storeCode, its, cs), items, coupons);
-  const bill = splitBill(team.picks, { discount: best.discount, fee: best.fee || 0, organizer: team.organizer });
+  // 分账以“实付”为准：各人菜单价之和与实付的差额即为可分摊的优惠（菜单价可能已是活动价，避免重复扣减）
+  const menuGross = team.picks.reduce((s, x) => s + Math.round(x.price * 100) * x.qty, 0);
+  const fee = best.fee || 0;
+  const bill = splitBill(team.picks, { discount: Math.max(0, menuGross + fee - best.total), fee, organizer: team.organizer });
   const ctx = { team, bill, plan: best, mode: p.mode, now };
   out(renderTerminal(ctx));
   const dir = opt.out || '.'; mkdirSync(dir, { recursive: true });
@@ -51,7 +54,7 @@ export async function run(argv, out = console.log) {
   const cmd = pos[0] || 'help';
   const mock = !!opt.mock || process.env.FEAST_MOCK === '1';
   if (cmd === 'help' || opt.help) return out(HELP);
-  const p = makeProvider({ mock });
+  const p = makeProvider({ mock, city: opt.city });
 
   switch (cmd) {
     case 'stores': {
@@ -60,7 +63,7 @@ export async function run(argv, out = console.log) {
       return list;
     }
     case 'new': {
-      const stores = await p.stores(opt.near || '');
+      const stores = (opt.near || !opt.store || p.mode === 'mock') ? await p.stores(opt.near || '') : [];
       const store = opt.store ? (stores.find(s => s.storeCode === opt.store) || { storeCode: opt.store, storeName: opt.store }) : stores[0];
       if (!store) throw new Error('没找到门店，用 --store 指定门店编码');
       const team = newTeam({ title: opt.title, organizer: opt.by || opt.organizer || process.env.USER || 'leader', store });
@@ -96,7 +99,7 @@ export async function run(argv, out = console.log) {
       const { best } = await bestCoupons((its, cs) => p.price(team.store.storeCode, its, cs), items, coupons);
       const code = planCode(team, best);
       if (opt.confirm !== code) throw new Error(`为防误下单，必须带上当前方案的确认码：feast order --confirm ${code}（先 feast checkout 核对账单）`);
-      const r = await p.createOrder({ storeCode: team.store.storeCode, items: items.map(i => ({ productCode: i.code, quantity: i.qty })), couponIds: best.combo.map(c => c.id) });
+      const r = await p.createOrder({ storeCode: team.store.storeCode, items, coupons: best.combo, takeWayCode: opt.takeway || 'take-in-store' });
       out(`🎉 下单成功${p.mode === 'mock' ? '（mock，未真实下单）' : ''}：${JSON.stringify(r)}`); return r;
     }
     case 'demo': {
@@ -116,14 +119,14 @@ export const HELP = `🍔 麦麦拼单 mcd-team-feast —— 1024 程序员节�
 
 用法: feast <命令> [选项]          (加 --mock 无需 token 体验)
   demo                       一键演示：开团 → 5 人点餐 → 自动用券 → 分账 → 账单卡
-  stores [关键词]             查附近门店
+  stores [关键词] [--city 城市] 查门店（如 stores 人民广场 --city 上海）
   new --store <编码> [--title 标题] [--by 发起人]   开团
   menu                       看菜单
   pick <名字> <餐品> [数量]    报名点餐（餐品名支持模糊匹配）
   drop <名字>                 删除某人的选择
   list                       查看当前团
   checkout [--out 目录]       凑单+最优券+人均分账，生成账单卡（svg/html/png）
-  order --confirm <确认码>    真正下单（必须带 checkout 给出的确认码）
+  order --confirm <确认码> [--takeway take-in-store|eat-in]  真正下单（必须带确认码）
   tools                      列出 MCP 工具及参数（需 token）
 
 环境变量: MCD_MCP_TOKEN（必需，真实模式）  MCD_MCP_URL（默认 https://mcp.mcd.cn）`;

@@ -25,13 +25,16 @@ export function receiptLines({ team, bill, plan, mode, now }) {
   }
   L.push(['n', '']);
   for (const a of plan.applied) L.push(['r', `  - 🎟  ${clip(a.title, 36)}`, a.discount != null ? `-¥${yuan(a.discount)}` : '']);
-  if (!plan.applied.length) L.push(['d', '  - 🎟  (无可用优惠券)']);
+  const couponOff = plan.applied.reduce((s, a) => s + (a.discount || 0), 0);
+  const promo = plan.applied.some(a => a.discount == null) ? 0 : plan.discount - couponOff;
+  if (promo > 0) L.push(['r', '  - 🏷  门店活动价 / 促销优惠', `-¥${yuan(promo)}`]);
+  if (!plan.applied.length) L.push(['d', '  - 🎟  (暂无可用优惠券，可先在麦麦省领券)']);
   L.push(['n', '']);
   L.push(['d', ` ${bill.people.length} people changed, ${bill.people.reduce((s, p) => s + p.items.length, 0)} items(+), ${plan.applied.length} coupons(-)`]);
   L.push(['w', ` 原价 ¥${yuan(plan.subtotal)}  优惠 -¥${yuan(plan.discount)}  实付 ¥${yuan(plan.total)}`]);
   L.push(['y', ` 人均 ¥${yuan(bill.avg)}  ·  省下 ${plan.subtotal ? Math.round(plan.discount * 100 / plan.subtotal) : 0}%`]);
   L.push(['n', '']);
-  L.push(['d', `$ git push origin 下午茶  # ${mode === 'mock' ? 'mock 演示数据' : 'via 麦当劳 MCP'} · mcd-team-feast`]);
+  L.push(['d', `$ git push origin feast  # ${mode === 'mock' ? 'mock 演示数据' : 'via 麦当劳 MCP'} · mcd-team-feast`]);
   return L;
 }
 
