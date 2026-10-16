@@ -8,7 +8,7 @@
 
 **开团 → 实时同步 → 确认锁单。发一个链接，全组各点各的；它帮你挑最省的券、算好每人转多少，再出一张 `git log` 风账单卡。**
 
-> 示例（真实麦当劳 MCP 计价）：5 人早餐拼单，原价 ¥139.50 → 实付 **¥125.30**，人均 **¥25.06**。
+> 示例（真实麦当劳 MCP 计价）：5 人下午茶拼单，原价 ¥159.90 → 实付 **¥140.70**，人均 **¥28.14**。
 
 [![GitHub stars](https://img.shields.io/github/stars/Jasonin2099/mcd-team-feast?style=social)](https://github.com/Jasonin2099/mcd-team-feast/stargazers)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
@@ -51,7 +51,7 @@
 <div align="center">
 <img src="assets/feast-receipt.png" width="640" alt="真实账单卡 git log 主题" />
 
-<sub>↑ 接入真实麦当劳 MCP，在上海福州路餐厅实时计价生成（成员为化名，仅计价未下单）</sub>
+<sub>↑ 接入真实麦当劳 MCP，在上海南京东路食品一店餐厅实时计价生成（成员为化名，仅计价未下单）</sub>
 </div>
 
 | `git` 提交记录 | `pr` 合并请求 | `receipt` 小票 |

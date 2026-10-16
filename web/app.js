@@ -1,10 +1,10 @@
 import { MOCK } from '../src/mock.js';
 import { localPrice } from '../src/providers.js';
 import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
-import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016h';
-import { I18N } from './i18n.js?v=20261016h';
-import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016h';
-import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016h';
+import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016i';
+import { I18N } from './i18n.js?v=20261016i';
+import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016i';
+import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016i';
 import qrcode from './vendor/qrcode.js';
 
 const $ = id => document.getElementById(id);
@@ -154,8 +154,8 @@ function renderHome() {
     <h2 class="reveal">${esc(t('realT'))}</h2>
     <p class="muted sec-lead reveal">${esc(t('realD'))}</p>
     <div class="real reveal">
-      <figure><img src="assets/real-receipt.png" width="920" height="1744" alt="${esc(t('realAlt'))}" loading="lazy"></figure>
-      <figure><img src="assets/feast-receipt.png" width="1560" height="1208" alt="${esc(t('realAlt'))}" loading="lazy"></figure>
+      <figure><img src="assets/real-receipt.png" width="920" height="1782" alt="${esc(t('realAlt'))}" loading="lazy"></figure>
+      <figure><img src="assets/feast-receipt.png" width="1560" height="1340" alt="${esc(t('realAlt'))}" loading="lazy"></figure>
     </div>
     <p class="cap">${esc(t('realCap'))}</p>
   </div></section>
@@ -172,7 +172,7 @@ function renderHome() {
     <h2>${esc(t('themesT'))}</h2>
     <div class="grid3 themes">
       <figure><img src="assets/theme-git.png" alt="git log" loading="lazy" width="1560" height="1000"><figcaption>${esc(t('thGit'))}</figcaption></figure>
-      <figure><img src="assets/real-pr.png" alt="GitHub PR" loading="lazy" width="1640" height="1100"><figcaption>${esc(t('thPr'))}</figcaption></figure>
+      <figure><img src="assets/real-pr.png" alt="GitHub PR" loading="lazy" width="1640" height="1308"><figcaption>${esc(t('thPr'))}</figcaption></figure>
       <figure><img src="assets/theme-receipt.png" alt="receipt" loading="lazy" width="920" height="2040" style="max-height:260px;object-fit:contain"><figcaption>${esc(t('thReceipt'))}</figcaption></figure>
     </div>
   </div></section>

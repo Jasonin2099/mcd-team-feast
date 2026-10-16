@@ -8,7 +8,7 @@
 
 **Open a group → sync live → lock the order. Share one link, everyone picks their own; it finds the cheapest coupon combo, works out who owes what, and prints a `git log`-style receipt card.**
 
-> Real run (priced live via McDonald's China MCP): a 5-person breakfast order, list price ¥139.50 → paid **¥125.30**, **¥25.06** per person.
+> Real run (priced live via McDonald's China MCP): a 5-person afternoon-tea order, list price ¥159.90 → paid **¥140.70**, **¥28.14** per person.
 
 [![GitHub stars](https://img.shields.io/github/stars/Jasonin2099/mcd-team-feast?style=social)](https://github.com/Jasonin2099/mcd-team-feast/stargazers)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)

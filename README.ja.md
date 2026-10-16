@@ -8,7 +8,7 @@
 
 **グループを作る → リアルタイム同期 → 注文を確定。リンクを 1 本送るだけで、みんなが好きなものを選べます。いちばん安いクーポンの組み合わせを探し、誰がいくら払うかを計算して、`git log` 風のレシートカードまで作ります。**
 
-> 実測例（マクドナルド中国の公式 MCP で計算）：5 人分の朝食で、定価 ¥139.50 → 支払い **¥125.30**、1 人あたり **¥25.06**。
+> 実測例（マクドナルド中国の公式 MCP で計算）：5 人分の午後のおやつで、定価 ¥159.90 → 支払い **¥140.70**、1 人あたり **¥28.14**。
 
 [![GitHub stars](https://img.shields.io/github/stars/Jasonin2099/mcd-team-feast?style=social)](https://github.com/Jasonin2099/mcd-team-feast/stargazers)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
