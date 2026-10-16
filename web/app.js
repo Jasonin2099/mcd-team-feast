@@ -1,9 +1,10 @@
 import { MOCK } from '../src/mock.js';
 import { localPrice } from '../src/providers.js';
 import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
-import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016e';
-import { I18N } from './i18n.js?v=20261016e';
-import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016e';
+import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016f';
+import { I18N } from './i18n.js?v=20261016f';
+import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016f';
+import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016f';
 import qrcode from './vendor/qrcode.js';
 
 const $ = id => document.getElementById(id);
@@ -447,7 +448,9 @@ function showInvite() {
 
 // ---------- 账单 ----------
 const narrow = matchMedia('(max-width: 600px)').matches;
-let cardTheme = narrow ? 'receipt' : 'git', lastSVG = '', lastMsg = '', lastCtx = null;
+let cardTheme = narrow ? 'receipt' : 'git', lastSVG = '', lastMsg = '', lastCtx = null, signSeed = 0, signCustom = null;
+function signCtx() { const sc = signContext(lastCtx); if (room?.state?.lockedAt) sc.hour = new Date(room.state.lockedAt).getHours(); sc.key = room ? room.id : (state.t || ''); return sc; }
+function currentSign() { return signCustom ?? (room?.state?.sign || pickSign(signCtx(), LANG, signSeed)); }
 // 导出时把子集字体内嵌进 SVG，保证 PNG/SVG 在任何设备上字形一致
 let fontCSSP = null;
 const b64 = buf => { let s = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
@@ -457,7 +460,7 @@ async function renderBill() {
   $('apptitle').textContent = state.t || t('appTitle');
   const r = await compute(state);
   if (!r) { $('appbody').innerHTML = `<div class="card empty"><b>${esc(t('emptyT'))}</b>${esc(t('billEmpty'))}</div>`; $('appbar').innerHTML = `<button class="btn primary" id="b2">‹ ${esc(t('tabOrder'))}</button>`; $('b2').onclick = () => history.back(); return; }
-  lastCtx = { team: r.team, bill: r.bill, plan: r.best, mode: 'mock', now: MOCK.now }; lastSVG = renderSVG(lastCtx, cardTheme);
+  lastCtx = { team: r.team, bill: r.bill, plan: r.best, mode: 'mock', now: MOCK.now }; lastCtx.sign = currentSign(); lastSVG = renderSVG(lastCtx, cardTheme);
   const url = location.origin + location.pathname;
   lastMsg = [fmt(t('msgHead'), { t: r.team.title }), fmt(t('msgLine'), { paid: Y(r.best.total), off: Y(r.best.discount), avg: Y(r.bill.avg) }),
     ...r.bill.people.map(p => fmt(t('msgPay'), { who: p.who, org: r.team.organizer, pay: Y(p.pay), items: p.items.join('、') })), fmt(t('msgFoot'), { url })].join('\n');
@@ -478,6 +481,13 @@ async function renderBill() {
     </div>
     <p class="hint">${esc(fmt(t('tried'), { n: r.tried.length }))} · ${esc(t('mockNote'))}</p>
   </div>
+  <div class="card sign-card">
+    <div class="card-h"><h3>✍️ ${esc(t('sgT'))}</h3><button class="pill" id="sgShuffle" type="button">🎲 ${esc(t('sgShuffle'))}</button></div>
+    <p class="sg-now" id="sgNow">${esc(lastCtx.sign)}</p>
+    <input type="text" id="sgInput" maxlength="40" placeholder="${esc(t('sgPh'))}" value="${esc(signCustom ?? '')}" aria-label="${esc(t('sgPh'))}">
+    <details class="sg-pick"><summary>${esc(t('sgPick'))}</summary><div class="sg-list">${candidates(signCtx(), LANG).slice(0, 14).map(x => `<button type="button" data-sg="${esc(x)}">${esc(x)}</button>`).join('')}</div></details>
+    <p class="hint">${esc(t(room ? (room.isHost ? 'sgHintHost' : 'sgHintLocal') : 'sgHintLink'))}</p>
+  </div>
   <details><summary>${esc(t('devT'))} · ${esc(t('devCli'))}</summary><div><pre>${esc(cli)}</pre><button class="link" id="svgBtn">⬇ ${esc(t('svg'))}</button></div></details></div></div>`;
   $('appbar').innerHTML = `<button class="btn primary" id="imgBtn"><span>${esc(t('saveImg'))}</span></button><button class="btn" id="msgBtn"><span>${esc(t('copyMsg'))}</span></button><button class="btn" id="shareBtn" style="flex:0 0 auto"><span>${esc(t('share'))}</span></button>`;
   document.querySelector('.preview').onclick = () => zoomSVG(lastSVG);
@@ -485,6 +495,10 @@ async function renderBill() {
   $('imgBtn').onclick = e => act(e.currentTarget, saveImage);
   $('msgBtn').onclick = e => act(e.currentTarget, async () => { await copyText(lastMsg); return t('copied'); });
   $('shareBtn').onclick = e => act(e.currentTarget, shareIt);
+  const applySign = (v, share = true) => { lastCtx.sign = v; lastSVG = renderSVG(lastCtx, cardTheme); document.querySelector('.preview').innerHTML = lastSVG; $('sgNow').textContent = v; if (share && room?.isHost) { clearTimeout(applySign.t); applySign.t = setTimeout(() => room.op('meta', { sign: v }).catch(e => toast(errMsg(e))), 400); } };
+  $('sgShuffle').onclick = () => { signCustom = null; $('sgInput').value = ''; signSeed = (signSeed + 1 + Math.floor(Math.random() * 7)) >>> 0; const v = pickSign(signCtx(), LANG, signSeed); if (room?.isHost) signCustom = v; applySign(v); };
+  $('sgInput').oninput = e => { const v = cleanSign(e.target.value); signCustom = v || null; applySign(v || (room?.state?.sign || pickSign(signCtx(), LANG, signSeed))); };
+  document.querySelector('.sg-list').onclick = e => { const b = e.target.closest('[data-sg]'); if (!b) return; signCustom = b.dataset.sg; $('sgInput').value = ''; applySign(signCustom); b.closest('details').open = false; };
   $('svgBtn').onclick = async () => download('feast-receipt.svg', new Blob([await exportSVG()], { type: 'image/svg+xml' }));
 }
 function svgToPngBlob(svg) {

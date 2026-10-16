@@ -56,7 +56,9 @@
 
 | `git` 提交记录 | `pr` 合并请求 | `receipt` 小票 |
 |:---:|:---:|:---:|
-| <img src="assets/theme-git.png" width="300"/> | <img src="assets/real-pr.png" width="300"/> | <img src="assets/theme-receipt.png" width="200"/> |
+| <img src="assets/theme-git.png" width="300"/> | <img src="assets/theme-pr.png" width="300"/> | <img src="assets/theme-receipt.png" width="200"/> |
+
+✍️ **梗签名**：每张卡片底部有一句程序员梗（按时段、人数、省钱比例、热量自动挑选），可 🎲 换一句、从列表选或自己写；CLI 用 `--sign random` / `--sign '文案'`。卡角附项目短链和二维码。
 
 ## 🛡 为什么放心
 
@@ -204,7 +206,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://你的域名 node 
 
 <a href="https://github.com/Jasonin2099/mcd-team-feast/graphs/contributors"><img src="https://contrib.rocks/image?repo=Jasonin2099/mcd-team-feast" alt="contributors" /></a>
 
-欢迎 PR：新主题、新彩蛋命令、更聪明的分账规则，详见 [CONTRIBUTING.md](CONTRIBUTING.md)。`npm test` 跑测试（26 个用例，零依赖）。
+欢迎 PR：新主题、新彩蛋命令、更聪明的分账规则，详见 [CONTRIBUTING.md](CONTRIBUTING.md)。`npm test` 跑测试（30 个用例，零依赖）。
 
 ## 📈 Star History
 

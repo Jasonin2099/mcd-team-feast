@@ -56,7 +56,9 @@
 
 | `git` | `pr` | `receipt` |
 |:---:|:---:|:---:|
-| <img src="assets/theme-git.png" width="300"/> | <img src="assets/real-pr.png" width="300"/> | <img src="assets/theme-receipt.png" width="200"/> |
+| <img src="assets/theme-git.png" width="300"/> | <img src="assets/theme-pr.png" width="300"/> | <img src="assets/theme-receipt.png" width="200"/> |
+
+✍️ **ネタ署名**：カード下部にプログラマーネタの一言（時間帯・人数・節約率・カロリーから自動選択）。🎲 で入れ替え、リストから選択、自由入力も可。CLI は `--sign random` / `--sign '文言'`。フッターにリポジトリのリンクと QR コード付き。
 
 ## 🛡 安心して使える理由
 
@@ -197,7 +199,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://your.site node ser
 
 <a href="https://github.com/Jasonin2099/mcd-team-feast/graphs/contributors"><img src="https://contrib.rocks/image?repo=Jasonin2099/mcd-team-feast" alt="contributors" /></a>
 
-PR 歓迎です。[CONTRIBUTING.md](CONTRIBUTING.md) を参照。`npm test` で 26 件のテスト（依存ゼロ）。
+PR 歓迎です。[CONTRIBUTING.md](CONTRIBUTING.md) を参照。`npm test` で 30 件のテスト（依存ゼロ）。
 
 ## 📈 Star History
 

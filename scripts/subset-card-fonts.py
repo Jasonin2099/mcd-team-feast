@@ -6,7 +6,7 @@ from fontTools.varLib import instancer
 root = pathlib.Path(__file__).resolve().parent.parent
 out = root/'web/fonts'
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 1200
-src = ''.join(p.read_text(encoding='utf-8') for p in [root/'src/card-core.js', root/'src/mock.js', root/'web/app.js', root/'web/i18n.js'])
+src = ''.join(p.read_text(encoding='utf-8') for p in [root/'src/card-core.js', root/'src/mock.js', root/'src/signatures.js', root/'web/app.js', root/'web/i18n.js'])
 freq_path = root/'scripts/hanzi-freq.txt'
 if not freq_path.exists():
     raw = urllib.request.urlopen('https://raw.githubusercontent.com/ruddfawcett/hanziDB.csv/master/data/hanziDB.csv').read().decode()

@@ -57,7 +57,9 @@
 
 | `git` | `pr` | `receipt` |
 |:---:|:---:|:---:|
-| <img src="assets/theme-git.png" width="300"/> | <img src="assets/real-pr.png" width="300"/> | <img src="assets/theme-receipt.png" width="200"/> |
+| <img src="assets/theme-git.png" width="300"/> | <img src="assets/theme-pr.png" width="300"/> | <img src="assets/theme-receipt.png" width="200"/> |
+
+✍️ **Meme signature**: every card ends with a programmer one-liner picked from context (time of day, team size, savings, calories). Shuffle 🎲, pick from a list or write your own; CLI: `--sign random` / `--sign 'text'`. A small footer carries the repo link and a QR code.
 
 ## 🛡 Why it's safe
 

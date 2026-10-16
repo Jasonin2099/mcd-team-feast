@@ -1,7 +1,7 @@
 # 从系统 Noto Sans CJK 中按网页实际用到的字符子集化，输出 woff2（SIL OFL 1.1）
 import re, subprocess, sys, pathlib, json
 root = pathlib.Path(__file__).resolve().parent.parent
-src = ''.join(p.read_text(encoding='utf-8') for p in [root/'index.html', root/'web/app.js', root/'web/i18n.js', root/'src/mock.js', root/'src/card-core.js'])
+src = ''.join(p.read_text(encoding='utf-8') for p in [root/'index.html', root/'web/app.js', root/'web/i18n.js', root/'src/mock.js', root/'src/card-core.js', root/'src/signatures.js'])
 ja = (root/'web/i18n.js').read_text(encoding='utf-8')
 ja = ja[ja.index('  ja: {'):]
 base = ''.join(chr(c) for c in range(0x20, 0x7f)) + '¥·—–…“”‘’「」『』（）【】、。，！？：；《》→←‹›×−✓★◐🔒'

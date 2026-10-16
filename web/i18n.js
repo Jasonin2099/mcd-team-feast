@@ -1,6 +1,13 @@
 // 网页文案（中/英/日）。保持短句。
 export const I18N = {
   zh: {
+    sgT: "梗签名",
+    sgShuffle: "换一句",
+    sgPick: "从列表里选",
+    sgPh: "或者自己写一句（最多 18 个汉字）",
+    sgHintHost: "你是团长：选好的签名会同步给全团。",
+    sgHintLocal: "只改你自己导出的图片；团长选的签名会同步给大家。",
+    sgHintLink: "签名会印在导出的图片上，分享时带着项目名和二维码。",
     heroBadge: "新：实时拼单 · 开团→同步→锁单",
     liveEy: "实时拼单",
     liveT: "开团，大家一起点，团长一键锁单。",
@@ -111,6 +118,13 @@ export const I18N = {
     theme: '外观', thAuto: '跟随系统', thLight: '浅色', thDark: '深色', thGold: '紫金', star: 'Star',
   },
   en: {
+    sgT: "Signature line",
+    sgShuffle: "Shuffle",
+    sgPick: "Pick from list",
+    sgPh: "Or write your own (max 36 chars)",
+    sgHintHost: "You’re the host: your pick syncs to everyone.",
+    sgHintLocal: "Only changes your own export; the host’s pick syncs to everyone.",
+    sgHintLink: "Printed on the exported image, with the project name and QR.",
     heroBadge: "New: real-time rooms · open → sync → lock",
     liveEy: "Real-time",
     liveT: "Open a group, everyone picks, the host locks it.",
@@ -221,6 +235,13 @@ export const I18N = {
     theme: 'Appearance', thAuto: 'System', thLight: 'Light', thDark: 'Dark', thGold: 'Purple & gold', star: 'Star',
   },
   ja: {
+    sgT: "ひとことネタ",
+    sgShuffle: "シャッフル",
+    sgPick: "リストから選ぶ",
+    sgPh: "または自分で書く（全角 18 文字まで）",
+    sgHintHost: "幹事の選択は全員に同期されます。",
+    sgHintLocal: "自分の書き出しだけ変わります。幹事の選択が全員に同期されます。",
+    sgHintLink: "書き出した画像に、プロジェクト名と QR と一緒に入ります。",
     heroBadge: "新機能：リアルタイム共同注文 · 作成→同期→確定",
     liveEy: "リアルタイム",
     liveT: "グループを作って、みんなで選んで、幹事が確定。",

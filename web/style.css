@@ -198,3 +198,8 @@ details.agg{box-shadow:none;background:var(--bg2);margin:10px 0 0;padding:0 12px
 .reveal{opacity:0;transform:translateY(16px);transition:opacity .6s var(--ease),transform .6s var(--ease)}.reveal.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
 .btn.pulse{animation:pulse 1.4s var(--ease) 2}@keyframes pulse{50%{box-shadow:0 0 0 8px var(--accent-soft)}}
+.sign-card .sg-now{margin:0 0 10px;font-size:15px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+.sign-card .pill{cursor:pointer}
+details.sg-pick{box-shadow:none;background:var(--bg2);margin:10px 0 0;padding:0 12px}details.sg-pick>summary{padding:10px 0;font-size:14px}
+.sg-list{display:grid;gap:6px;padding-bottom:10px}.sg-list button{text-align:left;border:0;background:var(--card);border-radius:10px;padding:9px 12px;font-size:14px;cursor:pointer;min-height:40px;overflow-wrap:anywhere}
+.sg-list button:active{transform:scale(.98)}

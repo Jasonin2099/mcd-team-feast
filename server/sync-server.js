@@ -38,7 +38,7 @@ function sweep() {
 export function publicState(r) {
   const online = new Set([...(conns.get(r.id) || [])].map(c => c.mid));
   return {
-    id: r.id, t: r.t, o: r.o, created: r.created, expires: r.created + TTL, deadline: r.deadline, locked: r.locked, rev: r.rev, host: r.hostMid,
+    id: r.id, t: r.t, o: r.o, created: r.created, expires: r.created + TTL, deadline: r.deadline, locked: r.locked, lockedAt: r.lockedAt || null, sign: r.sign || '', rev: r.rev, host: r.hostMid,
     members: Object.entries(r.members).map(([mid, m]) => ({ mid, name: m.name, picks: m.picks, done: m.done, online: online.has(mid), joined: m.joined })),
   };
 }
@@ -96,9 +96,9 @@ async function op(r, b) {
     case 'picks': if (!isMe) return [403, { error: 'auth' }]; if (r.locked) return [423, { error: 'locked' }]; m.picks = picksOf(b.picks); if (!m.picks.length) m.done = false; break;
     case 'done': if (!isMe) return [403, { error: 'auth' }]; if (r.locked) return [423, { error: 'locked' }]; m.done = !!b.done; break;
     case 'leave': if (!isMe) return [403, { error: 'auth' }]; if (r.locked) return [423, { error: 'locked' }]; if (b.mid === r.hostMid) return [400, { error: 'host' }]; delete r.members[b.mid]; break;
-    case 'meta': if (!isHost) return [403, { error: 'host' }]; if (b.t != null) r.t = clean(b.t, LIMITS.title); if (b.o != null) r.o = clean(b.o, LIMITS.name); break;
+    case 'meta': if (!isHost) return [403, { error: 'host' }]; if (b.t != null) r.t = clean(b.t, LIMITS.title); if (b.o != null) r.o = clean(b.o, LIMITS.name); if (b.sign != null) r.sign = clean(String(b.sign).replace(/[<>]/g, ''), 40); break;
     case 'deadline': if (!isHost) return [403, { error: 'host' }]; r.deadline = b.at == null ? null : Math.min(Math.max(+b.at || 0, Date.now()), r.created + TTL); break;
-    case 'lock': if (!isHost) return [403, { error: 'host' }]; r.locked = true; break;
+    case 'lock': if (!isHost) return [403, { error: 'host' }]; r.locked = true; r.lockedAt = Date.now(); break;
     case 'unlock': if (!isHost) return [403, { error: 'host' }]; r.locked = false; break;
     case 'kick': if (!isHost) return [403, { error: 'host' }]; if (b.who !== r.hostMid) delete r.members[b.who]; break;
     default: return [400, { error: 'op' }];

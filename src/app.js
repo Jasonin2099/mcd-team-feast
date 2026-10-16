@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { pickSign, signContext, cleanSign } from './signatures.js';
 import { createHash } from 'node:crypto';
 import { makeProvider } from './providers.js';
 import { newTeam, addPick, removePicks, mergeItems, bestCoupons, splitBill, blame } from './feast.js';
@@ -45,7 +46,11 @@ async function checkout(p, team, opt, out) {
   const foods = await p.nutrition().catch(() => []);
   const bill = splitBill(team.picks, { discount: Math.max(0, menuGross + fee - best.total), fee, organizer: team.organizer, kcalOf: foods.length ? n => kcalOf(foods, n) : undefined });
   const ctx = { team, bill, plan: best, mode: p.mode, now };
+  // 梗签名：--sign "<文字>" / --sign random / --sign none；默认按场景挑一句
+  const sg = opt.sign === true ? 'random' : opt.sign;
+  ctx.sign = sg === 'none' ? '' : sg && sg !== 'random' ? cleanSign(sg) : pickSign(signContext(ctx), 'zh', sg === 'random' ? (Math.random() * 2 ** 31) | 0 : 0);
   out(renderTerminal(ctx));
+  if (ctx.sign) out(`✍️  梗签名：${ctx.sign}`);
   const dir = opt.out || '.'; mkdirSync(dir, { recursive: true });
   const themes = opt.theme === 'all' ? THEMES : [opt.theme || 'git'];
   if (!themes.every(t => THEMES.includes(t))) throw new Error(`未知主题 ${opt.theme}，可选: ${THEMES.join(' / ')} / all`);
@@ -157,7 +162,7 @@ export const HELP = `🍔 麦麦拼单 mcd-team-feast —— 1024 程序员节�
   pick <名字> <餐品> [数量]    报名点餐（餐品名支持模糊匹配）
   drop <名字>                 删除某人的选择
   list                       查看当前团
-  checkout [--out 目录] [--theme git|pr|receipt|all]  凑单+最优券+人均分账，生成账单卡
+  checkout [--out 目录] [--theme git|pr|receipt|all] [--sign 文字|random|none]  凑单+最优券+人均分账，生成账单卡（带梗签名）
   blame                      git blame 式排行：谁花得最多、谁热量最高
   diff                       看看拼单相比群接龙改了什么
   mcp                        以 MCP Server(stdio) 方式运行，供 Claude/Cursor/WorkBuddy 调用
