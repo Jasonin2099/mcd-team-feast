@@ -6,6 +6,14 @@
       "headers": {
         "Authorization": "Bearer ${MCD_MCP_TOKEN}"
       }
+    },
+    "mcd-team-feast": {
+      "command": "npx",
+      "args": ["-y", "github:Jasonin2099/mcd-team-feast", "mcp"],
+      "env": {
+        "MCD_MCP_TOKEN": "${MCD_MCP_TOKEN}",
+        "FEAST_FILE": "${HOME}/.feast.json"
+      }
     }
   }
 }

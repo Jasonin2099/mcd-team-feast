@@ -25,7 +25,7 @@
 | `now-time-info` | 获取当前日期，写入账单卡（识别 1024 程序员节） | `feast checkout` |
 | `available-coupons` / `auto-bind-coupons` | 券不够时，经用户同意后一键领取麦麦省优惠券 | `SKILL.md` |
 | `campaign-calendar` | 查询当月活动，提示是否有节日专属优惠 | `SKILL.md` |
-| `list-nutrition-foods` | 为控卡同事提供热量参考 | `SKILL.md` |
+| `list-nutrition-foods` | 为每人统计热量，账单卡与 `feast blame` 展示（返回为紧凑表格 `[N]{productName,…,energyKcal,…}:` 格式，已解析） | `feast checkout` / `feast blame` |
 
 ## 实际调用参数（以 `tools/list` 返回的 schema 为准，到店自取场景）
 
@@ -76,6 +76,10 @@ sequenceDiagram
     CLI->>MCP: create-order
     MCP-->>Lead: 订单号 + 支付链接（由用户自行支付）
 ```
+
+## 麦麦拼单自身的 MCP Server
+
+`feast mcp` 以 stdio 方式提供 MCP Server，内部再调用麦当劳 MCP。暴露 `feast_stores / feast_new / feast_menu / feast_pick / feast_drop / feast_list / feast_checkout / feast_blame`，**不暴露任何下单工具**。
 
 ## 安全设计
 

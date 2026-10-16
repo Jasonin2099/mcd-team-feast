@@ -47,11 +47,13 @@ export async function bestCoupons(priceFn, items, coupons, maxSize = 3) {
 }
 
 // 人均分账：按每人原价占比分摊优惠，配送费平摊，尾差由发起人兜底
-export function splitBill(picks, { discount = 0, fee = 0, organizer } = {}) {
+export function splitBill(picks, { discount = 0, fee = 0, organizer, kcalOf } = {}) {
   const people = new Map();
   for (const p of picks) {
     const e = people.get(p.who) || { who: p.who, items: [], gross: 0 };
-    e.items.push(`${p.name}×${p.qty}`); e.gross += fen(p.price) * p.qty; people.set(p.who, e);
+    e.items.push(`${p.name}×${p.qty}`); e.gross += fen(p.price) * p.qty;
+    const k = kcalOf?.(p.name); if (k != null) e.kcal = (e.kcal || 0) + k * p.qty;
+    people.set(p.who, e);
   }
   const list = [...people.values()];
   const gross = list.reduce((s, e) => s + e.gross, 0);
@@ -65,4 +67,15 @@ export function splitBill(picks, { discount = 0, fee = 0, organizer } = {}) {
   const org = list.find(e => e.who === organizer) || list[0];
   if (org) org.pay += diff;
   return { people: list, gross, total, avg: list.length ? Math.round(total / list.length) : 0 };
+}
+
+// feast blame：谁点得最多 / 最贵 / 热量最高，程序员式甩锅
+export function blame(bill) {
+  const by = (k) => [...bill.people].sort((a, b) => (b[k] || 0) - (a[k] || 0))[0];
+  return {
+    spender: by('gross'),
+    kcal: bill.people.some(p => p.kcal) ? by('kcal') : null,
+    saver: [...bill.people].sort((a, b) => a.gross - b.gross)[0],
+    ranking: [...bill.people].sort((a, b) => b.pay - a.pay),
+  };
 }

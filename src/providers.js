@@ -1,6 +1,7 @@
 import { MOCK } from './mock.js';
 import { McpClient } from './mcp.js';
 import { fen } from './money.js';
+import { parseNutrition } from './nutrition.js';
 
 // 本地计价（mock 模式 & 单元测试用），所有金额以“分”计算避免浮点误差
 export function localPrice(menu, items, coupons = []) {
@@ -32,6 +33,7 @@ export class MockProvider {
   async menu(storeCode) { this.log('query-meals', { storeCode }); return MOCK.menu; }
   async coupons(storeCode) { this.log('query-store-coupons', { storeCode }); return MOCK.coupons; }
   async price(storeCode, items, coupons) { this.log('calculate-price', { storeCode, items, coupons: coupons.map(c => c.id) }); return localPrice(MOCK.menu, items, coupons); }
+  async nutrition() { this.log('list-nutrition-foods', {}); return MOCK.menu.map(m => ({ name: m.name, kcal: m.kcal })); }
   async createOrder(payload) { this.log('create-order', payload); return { orderId: 'MOCK-' + Date.now(), payUrl: 'https://example.invalid/mock-pay', mock: true }; }
 }
 
@@ -118,6 +120,7 @@ export class McpProvider {
     if (!lines) return null;
     return normalizePrice(await this.call('calculate-price', { storeCode, ...SCENE, items: lines }), coupons);
   }
+  async nutrition() { return parseNutrition(unwrap(await this.call('list-nutrition-foods', {}))); }
   // 仅在 feast order --confirm <确认码> 时调用
   async createOrder({ storeCode, items, coupons = [], takeWayCode = 'take-in-store' }) {
     return this.call('create-order', { storeCode, ...SCENE, takeWayCode, items: buildPriceItems(items, coupons) });

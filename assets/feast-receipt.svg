@@ -5,9 +5,9 @@
   <text x="390" y="24" fill="#8B949E" font-size="13" text-anchor="middle" font-family="monospace">~/1024-feast — git log -1 --stat</text>
   <rect x="716" y="8" width="44" height="22" rx="4" fill="#DA291C"/><text x="738" y="24" fill="#FFC72C" font-size="15" font-weight="bold" text-anchor="middle" font-family="sans-serif">M</text>
   <g font-family="'DejaVu Sans Mono','Noto Sans Mono CJK SC','Noto Sans CJK SC',Menlo,Consolas,monospace" font-size="15">
-  <text x="28" y="70" fill="#FFC72C" xml:space="preserve">commit 2b8fa006d1856bad039e6d01ea39f40fbcc61874</text>
+  <text x="28" y="70" fill="#FFC72C" xml:space="preserve">commit af8eb1b3599326dc6aa93745b575e92e9929b4df</text>
   <text x="28" y="94" fill="#8B949E" xml:space="preserve">Author: 老王(后端) &lt;team@1024.feast&gt;</text>
-  <text x="28" y="118" fill="#8B949E" xml:space="preserve">Date:   2026-10-16 08:37  </text>
+  <text x="28" y="118" fill="#8B949E" xml:space="preserve">Date:   2026-10-16 08:43  </text>
   <text x="28" y="142" fill="#E6EDF3" xml:space="preserve"></text>
   <text x="28" y="166" fill="#E6EDF3" xml:space="preserve">    feat(1450441): 1024 程序员节早餐拼单</text>
   <text x="28" y="190" fill="#8B949E" xml:space="preserve">    📍 麦当劳上海福州路餐厅</text>
@@ -21,7 +21,7 @@
   <text x="28" y="382" fill="#FF7B72" xml:space="preserve">  - 🏷  门店活动价 / 促销优惠</text><text x="748" y="382" fill="#FF7B72" text-anchor="end">-¥14.20</text>
   <text x="28" y="406" fill="#8B949E" xml:space="preserve">  - 🎟  (暂无可用优惠券，可先在麦麦省领券)</text>
   <text x="28" y="430" fill="#E6EDF3" xml:space="preserve"></text>
-  <text x="28" y="454" fill="#8B949E" xml:space="preserve"> 5 people changed, 10 items(+), 0 coupons(-)</text>
+  <text x="28" y="454" fill="#8B949E" xml:space="preserve"> 5 people changed, 10 items(+), 0 coupons(-), 1654 kcal</text>
   <text x="28" y="478" fill="#E6EDF3" xml:space="preserve"> 原价 ¥139.50  优惠 -¥14.20  实付 ¥125.30</text>
   <text x="28" y="502" fill="#FFC72C" xml:space="preserve"> 人均 ¥25.06  ·  省下 10%</text>
   <text x="28" y="526" fill="#E6EDF3" xml:space="preserve"></text>

@@ -24,7 +24,7 @@ export class McpClient {
   }
   async init() {
     if (this.ready) return;
-    await this.rpc('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'mcd-team-feast', version: '0.1.0' } });
+    await this.rpc('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'mcd-team-feast', version: '0.2.0' } });
     await this.rpc('notifications/initialized', undefined, true);
     this.ready = true;
   }

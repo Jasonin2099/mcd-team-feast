@@ -1,9 +1,12 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { makeProvider } from './providers.js';
-import { newTeam, addPick, removePicks, mergeItems, bestCoupons, splitBill } from './feast.js';
+import { newTeam, addPick, removePicks, mergeItems, bestCoupons, splitBill, blame } from './feast.js';
+import { kcalOf } from './nutrition.js';
+import { THEMES } from './card.js';
 import { writeCard, renderTerminal } from './card.js';
 import { yuan } from './money.js';
+import { fakeHash, padEnd } from './card-core.js';
 
 const DEMO_PICKS = [
   ['老王(后端)', '巨无霸'], ['老王(后端)', '中杯可口可乐'],
@@ -23,6 +26,8 @@ export function parseArgs(argv) {
   return { pos, opt };
 }
 
+const fakeShort = s => fakeHash(s).slice(0, 8);
+const padName = s => padEnd(String(s).slice(0, 10), 12);
 const stateFile = opt => opt.file || process.env.FEAST_FILE || '.feast.json';
 const load = opt => { const f = stateFile(opt); if (!existsSync(f)) throw new Error('还没有开团，先运行: feast new --store <门店编码>'); return JSON.parse(readFileSync(f, 'utf8')); };
 const save = (opt, s) => writeFileSync(stateFile(opt), JSON.stringify(s, null, 2));
@@ -37,12 +42,18 @@ async function checkout(p, team, opt, out) {
   // 分账以“实付”为准：各人菜单价之和与实付的差额即为可分摊的优惠（菜单价可能已是活动价，避免重复扣减）
   const menuGross = team.picks.reduce((s, x) => s + Math.round(x.price * 100) * x.qty, 0);
   const fee = best.fee || 0;
-  const bill = splitBill(team.picks, { discount: Math.max(0, menuGross + fee - best.total), fee, organizer: team.organizer });
+  const foods = await p.nutrition().catch(() => []);
+  const bill = splitBill(team.picks, { discount: Math.max(0, menuGross + fee - best.total), fee, organizer: team.organizer, kcalOf: foods.length ? n => kcalOf(foods, n) : undefined });
   const ctx = { team, bill, plan: best, mode: p.mode, now };
   out(renderTerminal(ctx));
   const dir = opt.out || '.'; mkdirSync(dir, { recursive: true });
-  const files = writeCard(ctx, dir);
-  out(`\n🧾 账单卡: ${files.png || files.svg}${files.png ? '' : '  (装了 Chrome 可自动导出 PNG)'}\n   HTML: ${files.html}`);
+  const themes = opt.theme === 'all' ? THEMES : [opt.theme || 'git'];
+  if (!themes.every(t => THEMES.includes(t))) throw new Error(`未知主题 ${opt.theme}，可选: ${THEMES.join(' / ')} / all`);
+  let files;
+  for (const t of themes) {
+    const f = writeCard(ctx, dir, t === 'git' ? 'feast-receipt' : `feast-receipt-${t}`, t); files = files || f;
+    out(`\n🧾 账单卡[${t}]: ${f.png || f.svg}${f.png ? '' : '  (装了 Chrome 可自动导出 PNG)'}`);
+  }
   out(`🔍 已比较 ${tried.length} 种用券组合，最优: ${best.combo.map(c => c.title).join(' + ') || '不用券'}`);
   const code = planCode(team, best);
   out(`\n✅ 确认无误后下单（不会自动下单）：feast order --confirm ${code}${p.mode === 'mock' ? ' --mock' : ''}`);
@@ -54,6 +65,7 @@ export async function run(argv, out = console.log) {
   const cmd = pos[0] || 'help';
   const mock = !!opt.mock || process.env.FEAST_MOCK === '1';
   if (cmd === 'help' || opt.help) return out(HELP);
+  if (cmd === 'mcp') { const { serve } = await import('./mcp-server.js'); return serve({ mock }); }
   const p = makeProvider({ mock, city: opt.city });
 
   switch (cmd) {
@@ -110,6 +122,26 @@ export async function run(argv, out = console.log) {
       save(opt, team);
       return checkout(p, team, opt, out);
     }
+    case 'blame': {
+      const team = load(opt);
+      const foods = opt.kcal === false ? [] : await p.nutrition().catch(() => []);
+      const bill = splitBill(team.picks, { organizer: team.organizer, kcalOf: foods.length ? n => kcalOf(foods, n) : undefined });
+      if (!bill.people.length) throw new Error('还没人点餐');
+      const b = blame(bill);
+      out('$ git blame feast.lock\n');
+      b.ranking.forEach((e, i) => out(`${fakeShort(e.who)} (${padName(e.who)} ${String(i + 1).padStart(2)}) ¥${yuan(e.gross).padStart(7)}${e.kcal ? `  ${String(e.kcal).padStart(4)} kcal` : ''}  ${e.items.join(' ')}`));
+      out(`\n💸 钱包贡献榜首: ${b.spender.who}  ¥${yuan(b.spender.gross)}`);
+      if (b.kcal) out(`🔥 热量担当: ${b.kcal.who}  ${b.kcal.kcal} kcal（记得起身走走，别久坐写代码）`);
+      out(`🥗 最克制: ${b.saver.who}  ¥${yuan(b.saver.gross)}`);
+      return b;
+    }
+    case 'diff': {
+      const team = load(opt);
+      out(`diff --feast a/群接龙.txt b/feast.lock\n--- a/群接龙.txt\n+++ b/feast.lock\n@@ ${team.store?.storeName || ''} @@`);
+      for (const pk of team.picks) out(`+ ${pk.who}: ${pk.name}×${pk.qty}  ¥${(pk.price * pk.qty).toFixed(2)}`);
+      out(`- 30 条群消息、3 次 @全体成员、1 个被漏掉的同事`);
+      return team.picks;
+    }
     case 'tools': { const t = await p.c.listTools(); t.forEach(x => out(`${x.name}\t${JSON.stringify(x.inputSchema?.properties || {})}`)); return t; }
     default: throw new Error(`未知命令 ${cmd}\n${HELP}`);
   }
@@ -125,7 +157,10 @@ export const HELP = `🍔 麦麦拼单 mcd-team-feast —— 1024 程序员节�
   pick <名字> <餐品> [数量]    报名点餐（餐品名支持模糊匹配）
   drop <名字>                 删除某人的选择
   list                       查看当前团
-  checkout [--out 目录]       凑单+最优券+人均分账，生成账单卡（svg/html/png）
+  checkout [--out 目录] [--theme git|pr|receipt|all]  凑单+最优券+人均分账，生成账单卡
+  blame                      git blame 式排行：谁花得最多、谁热量最高
+  diff                       看看拼单相比群接龙改了什么
+  mcp                        以 MCP Server(stdio) 方式运行，供 Claude/Cursor/WorkBuddy 调用
   order --confirm <确认码> [--takeway take-in-store|eat-in]  真正下单（必须带确认码）
   tools                      列出 MCP 工具及参数（需 token）
 
