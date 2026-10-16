@@ -1,9 +1,9 @@
 import { MOCK } from '../src/mock.js';
 import { localPrice } from '../src/providers.js';
 import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
-import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016c';
-import { I18N } from './i18n.js?v=20261016c';
-import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016c';
+import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016d';
+import { I18N } from './i18n.js?v=20261016d';
+import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016d';
 import qrcode from './vendor/qrcode.js';
 
 const $ = id => document.getElementById(id);
@@ -102,6 +102,14 @@ function saveHash() {
 }
 
 // ---------- 首页 ----------
+let revealIO = null;
+function reveal() {
+  const els = document.querySelectorAll('#home .reveal');
+  if (reduce.matches || !('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('in')); return; }
+  revealIO?.disconnect();
+  revealIO = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); revealIO.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+  els.forEach(e => revealIO.observe(e));
+}
 let sampleSVG = '';
 async function buildSample() {
   const r = await compute({ t: '1024 程序员节下午茶', o: '老王(后端)', p: SAMPLE });
@@ -121,12 +129,35 @@ function renderHome() {
           <button class="btn primary big" id="start">${esc(t('start'))}</button>
           ${lastHash && !hadLink ? `<button class="link" id="resume">${esc(t('resume'))} →</button>` : ''}
         </div>
-        <p style="margin:16px 0 0"><span class="badge">🔒 ${esc(t('privacy'))}</span></p>
+        <p style="margin:16px 0 0"><span class="badge">⚡ ${esc(t('heroBadge'))}</span></p>
       </div>
       <figure class="sample${narrow ? ' clip' : ''}" style="margin:0"><div class="sample-in">${sampleSVG}</div><figcaption class="cap">${esc(t('sampleCap'))}</figcaption></figure>
     </section>
-    <img class="hero-art" src="assets/hero.webp" width="1280" height="714" alt="mcd-team-feast pixel art" loading="lazy">
   </div>
+  <section class="block live-sec"><div class="wrap">
+    <p class="eyebrow reveal">${esc(t('liveEy'))}</p>
+    <h2 class="reveal">${esc(t('liveT'))}</h2>
+    <p class="muted sec-lead reveal">${esc(t('liveD'))}</p>
+    <figure class="demo reveal"><img src="assets/realtime-demo.webp" width="779" height="549" alt="${esc(t('demoAlt'))}" loading="lazy"><figcaption class="cap">${esc(t('demoCap'))}</figcaption></figure>
+    <div class="card try reveal">
+      <h3>${esc(t('tryT'))}</h3>
+      <ol class="try-steps">${[1, 2, 3].map(i => `<li><span class="step-n">${i}</span><span>${esc(t('try' + i))}</span></li>`).join('')}</ol>
+      <button class="btn primary" id="tryLive"><span>⚡ ${esc(t('tryBtn'))}</span></button>
+    </div>
+  </div></section>
+  <section class="block story"><div class="wrap">
+    <h2 class="reveal">${esc(t('storyT'))}</h2>
+    <div class="story-list">${[1, 2, 3].map(i => `<div class="story-i reveal"><span class="story-k">${esc(t('s' + i + 'k'))}</span><h3>${esc(t('s' + i + 't'))}</h3><p>${esc(t('s' + i + 'd'))}</p></div>`).join('')}</div>
+  </div></section>
+  <section class="block"><div class="wrap">
+    <h2 class="reveal">${esc(t('realT'))}</h2>
+    <p class="muted sec-lead reveal">${esc(t('realD'))}</p>
+    <div class="real reveal">
+      <figure><img src="assets/real-receipt.png" width="920" height="1744" alt="${esc(t('realAlt'))}" loading="lazy"></figure>
+      <figure><img src="assets/feast-receipt.png" width="1560" height="1208" alt="${esc(t('realAlt'))}" loading="lazy"></figure>
+    </div>
+    <p class="cap">${esc(t('realCap'))}</p>
+  </div></section>
   <section class="block"><div class="wrap">
     <h2>${esc(t('howT'))}</h2>
     <div class="grid3 steps">${[1, 2, 3].map(i => `<div class="card"><span class="step-n">${i}</span><h3>${esc(t('how' + i + 't'))}</h3><p>${esc(t('how' + i + 'd'))}</p></div>`).join('')}</div>
@@ -169,7 +200,16 @@ feast order --confirm &lt;code&gt;</pre></div></details>
     <h2>${esc(t('faqT'))}</h2>
     ${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><div>${esc(a)}</div></details>`).join('')}
   </div></section>
-  <footer><div class="wrap">${esc(t('footer'))}<br><a href="${REPO}" target="_blank" rel="noopener">github.com/Jasonin2099/mcd-team-feast</a></div></footer>`;
+  <footer class="foot"><div class="wrap">
+    <div class="foot-top">
+      <div><b>🍔 麦麦拼单 · mcd-team-feast</b><p>${esc(t('footTag'))}</p></div>
+      <nav aria-label="links"><a href="${REPO}" target="_blank" rel="noopener">GitHub</a><a href="${REPO}#readme" target="_blank" rel="noopener">README</a><a href="${REPO}/blob/main/MCP_INTEGRATION.md" target="_blank" rel="noopener">MCP</a><a href="${REPO}/tree/main/server" target="_blank" rel="noopener">${esc(t('footSelf'))}</a><a href="${REPO}/stargazers" target="_blank" rel="noopener">⭐ Star</a></nav>
+    </div>
+    <p class="foot-note">${esc(t('footer'))}</p>
+    <p class="foot-note">${esc(t('footLic'))}</p>
+  </div></footer>`;
+  $('tryLive').onclick = () => { if (room) { room.close(); room = null; } state = DEFAULT(); go('app', 'order'); setTimeout(() => { const el = $('fMe'); if (el && !el.value) el.focus(); toast(t('tryToast')); document.getElementById('goLive')?.classList.add('pulse'); }, 380); };
+  reveal();
   $('start').onclick = () => { if (room) { room.close(); room = null; } if (!state) state = DEFAULT(); go('app', 'order'); };
   $('resume')?.addEventListener('click', () => { const rid = ridOf(lastHash); if (rid) { enterRoom(rid); go('app', 'order'); return; } try { state = decodeState(lastHash); } catch { state = DEFAULT(); } go('app', 'order'); });
 }
@@ -291,7 +331,7 @@ async function goLive() {
   const mine = state.p.filter(x => x[0] === name).map(x => [x[1], x[2]]);
   let j, err;
   for (let i = 0; i < 3 && !j; i++) { try { j = await createRoom({ t: state.t, name, picks: mine }); } catch (e) { err = e; console.warn('[feast] create room failed', SYNC_URL, e); if (e.status && e.status < 500 && e.status !== 429) break; await new Promise(r => setTimeout(r, 800 * (i + 1))); } }
-  if (!j) throw new Error(t('syncDown') + (err?.status ? ` (HTTP ${err.status})` : ` (${new URL(SYNC_URL).host} ${t('netErr')})`));
+  if (!j) throw new Error(err?.status ? `${t('syncDown')} (HTTP ${err.status})` : fmt(t('netHint'), { host: new URL(SYNC_URL).host }));
   enterRoom(j.id); room.apply(j.state); saveHash(); renderApp();
   return t('liveOn');
 }
@@ -512,3 +552,5 @@ await buildSample();
 if (hadLink) { history.replaceState({ v: 'home', k: newKey() }, '', location.pathname + location.search); history.pushState({ v: 'app', tab: 'order', k: curKey }, '', location.pathname + location.search + hashFor()); show('app', 'order', scrollStore[curKey] || 0); }
 else { history.replaceState({ v: 'home', k: curKey }, '', location.pathname + location.search); show('home', 'order', scrollStore[curKey] || 0); }
 window.__feast = { encodeState, decodeState, get state() { return state; } };
+// 在已打开的页面里粘贴房间链接（只改了 hash，不会刷新）：直接进入房间
+addEventListener('hashchange', () => { const rid = ridOf(location.hash); if (rid && rid !== room?.id) { enterRoom(rid); curKey = newKey(); history.replaceState({ v: 'app', tab: 'order', k: curKey }, '', location.href); show('app', 'order', 0, 'push'); } });

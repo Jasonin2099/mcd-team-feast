@@ -65,8 +65,9 @@ for (const [w, h] of [[360, 780], [412, 915], [1440, 900]]) for (const scheme of
   await p.goto(BASE, { waitUntil: 'networkidle0' }); await wait(400);
   await p.screenshot({ path: `${OUT}/${prefix}-home-${L}.png` }); await check(p, L + ' home'); await chrome(p, L + ' home');
   // first-fold: start button & sample card visible
-  const fold = await p.evaluate(() => { const s = document.getElementById('start').getBoundingClientRect(); const c = document.querySelector('.sample').getBoundingClientRect(); return { start: s.bottom <= innerHeight, card: c.top < innerHeight, prim: document.querySelectorAll('#home .btn.primary').length }; });
+  const fold = await p.evaluate(() => { const s = document.getElementById('start').getBoundingClientRect(); const c = document.querySelector('.sample').getBoundingClientRect(); return { start: s.bottom <= innerHeight, card: c.top < innerHeight, prim: [...document.querySelectorAll('#home .btn.primary')].filter(b => b.getBoundingClientRect().top < innerHeight).length }; });
   if (!fold.start || !fold.card || fold.prim !== 1) problems.push(`[${L}] fold ${JSON.stringify(fold)}`);
+  { const hh = await p.evaluate(() => document.documentElement.scrollHeight); for (let y = 0; y < hh; y += 500) { await p.evaluate(y => scrollTo({ top: y, behavior: "instant" }), y); await wait(60); } await p.evaluate(() => scrollTo({ top: 0, behavior: "instant" })); await wait(700); const unrev = await p.evaluate(() => document.querySelectorAll(".reveal:not(.in)").length); if (unrev) problems.push(`[${L}] ${unrev} reveal elements never shown`); await check(p, L + " homefull"); }
   if (w !== 412) await p.screenshot({ path: `${OUT}/${prefix}-homefull-${L}.png`, fullPage: true });
   await p.evaluate(() => scrollTo(0, 700)); await wait(100);
   await p.evaluate(() => document.getElementById('start').click()); await wait(300);
