@@ -24,7 +24,7 @@
 header{padding:0 0 8px;text-align:center}.hero{display:block;width:100%;height:auto;max-width:1180px;margin:0 auto;border-radius:0 0 16px 16px;image-rendering:pixelated}
 .topbar{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:rgba(13,17,23,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
 .topbar a.star{background:#238636;border:1px solid #2ea043;color:#fff;text-decoration:none;border-radius:8px;padding:6px 12px;font-weight:600}
-.cta{margin:10px 0 0}.cta a{color:var(--yel)}
+#langs a{color:var(--mute);text-decoration:none}#langs a.on{color:var(--yel)}.cta{margin:10px 0 0}.cta a{color:var(--yel)}
 @media(max-width:600px){header h1{font-size:22px}.menu{grid-template-columns:repeat(2,1fr)}.row input{min-width:0}main{padding:10px}}header h1{margin:0;font-size:28px}header h1 b{color:var(--yel)}header p{color:var(--mute);margin:6px 0 0}
 main{max-width:1180px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px}
 @media(max-width:900px){main{grid-template-columns:1fr}}
@@ -42,37 +42,38 @@ footer{text-align:center;color:var(--mute);padding:20px;font-size:13px}footer a{
 </style>
 </head>
 <body>
-<div class="topbar"><b>🍔 麦麦拼单</b><a class="star" href="https://github.com/Jasonin2099/mcd-team-feast" target="_blank" rel="noopener">⭐ Star on GitHub <span id="stars"></span></a></div>
+<div class="topbar"><b>🍔 <span data-i="name">麦麦拼单</span> <span id="langs" style="font-weight:400;font-size:13px;margin-left:8px"><a href="#" data-l="zh">中</a> · <a href="#" data-l="en">EN</a> · <a href="#" data-l="ja">日</a></span></b><a class="star" href="https://github.com/Jasonin2099/mcd-team-feast" target="_blank" rel="noopener">⭐ Star on GitHub <span id="stars"></span></a></div>
 <header>
   <img class="hero" src="assets/hero.webp" alt="麦麦拼单 mcd-team-feast：1024 程序员节，一行命令请全组吃麦当劳" width="1280" height="714">
-  <h1 style="margin-top:14px">🍔 麦麦拼单 <b>mcd-team-feast</b></h1>
-  <p>开团 → 把链接发到群里 → 大家各点各的 → 自动挑最优券 → 人均分账 → 一张程序员风账单卡</p>
-  <p class="cta mute">觉得好用？<a href="https://github.com/Jasonin2099/mcd-team-feast" target="_blank" rel="noopener">在 GitHub 点个 Star ⭐</a> 是对作者最大的鼓励</p>
+  <h1 style="margin-top:14px">🍔 <span data-i="name">麦麦拼单</span> <b>mcd-team-feast</b></h1>
+  <p data-i="tagline">开团 → 把链接发到群里 → 大家各点各的 → 自动挑最优券 → 人均分账 → 一张程序员风账单卡</p>
+  <p class="cta mute" data-i="cta" data-html>觉得好用？<a href="https://github.com/Jasonin2099/mcd-team-feast" target="_blank" rel="noopener">在 GitHub 点个 Star ⭐</a> 是对作者最大的鼓励</p>
+  <p class="mute" id="overseas" style="display:none" data-i="overseas"></p>
 </header>
 <main>
   <section class="card">
-    <h2>① 开团</h2>
+    <h2 data-i="h1">① 开团</h2>
     <div class="row"><input id="title" placeholder="团名" value="1024 程序员节下午茶"><input id="organizer" placeholder="发起人" value="老王(后端)"></div>
-    <h2>② 我是谁 & 点什么</h2>
-    <div class="row"><input id="who" placeholder="你的名字，例如 小李(前端)"><span class="mute">点下面的餐品即可加入</span></div>
+    <h2 data-i="h2">② 我是谁 & 点什么</h2>
+    <div class="row"><input id="who" placeholder="你的名字，例如 小李(前端)"><span class="mute" data-i="tap">点下面的餐品即可加入</span></div>
     <div class="menu" id="menu"></div>
-    <h2 style="margin-top:14px">③ 当前团（<span id="count">0</span> 项）</h2>
+    <h2 style="margin-top:14px"><span data-i="h3">③ 当前团</span>（<span id="count">0</span>）</h2>
     <ul class="picks" id="picks"></ul>
     <div class="row" style="margin-top:12px">
-      <button class="primary" id="share">🔗 复制邀请链接</button>
-      <button id="reset">清空</button>
+      <button class="primary" id="share" data-i="share">🔗 复制邀请链接</button>
+      <button id="reset" data-i="reset">清空</button>
     </div>
-    <p class="mute">团的数据全部编码在链接里（不经过任何服务器）。同事打开链接点完餐，再把新链接发回群里即可。</p>
+    <p class="mute" data-i="privacy">团的数据全部编码在链接里（不经过任何服务器）。同事打开链接点完餐，再把新链接发回群里即可。</p>
   </section>
   <section class="card">
-    <h2>④ 账单卡</h2>
+    <h2 data-i="h4">④ 账单卡</h2>
     <div class="row">
       <select id="theme"><option value="git">git log</option><option value="pr">GitHub PR</option><option value="receipt">小票</option></select>
-      <button id="dlsvg">⬇ SVG</button><button id="dlpng">⬇ PNG</button><button id="copymsg">📋 复制收款群消息</button><button id="sharecard">📤 分享</button>
+      <button id="dlsvg">⬇ SVG</button><button id="dlpng">⬇ PNG</button><button id="copymsg" data-i="copymsg">📋 复制收款群消息</button><button id="sharecard" data-i="sharecard">📤 分享</button>
     </div>
     <div id="card"></div>
     <p class="mute" id="best"></p>
-    <h2>⑤ 用真实麦当劳 MCP 计价 / 下单</h2>
+    <h2 data-i="h5">⑤ 用真实麦当劳 MCP 计价 / 下单</h2>
     <p class="mute">网页使用演示菜单与示例优惠券。拿到 <a style="color:var(--yel)" href="https://open.mcd.cn/mcp">麦当劳 MCP Token</a> 后，在终端粘贴下面的命令即可按真实门店价格结算：</p>
     <pre id="cli"></pre>
   </section>
@@ -125,12 +126,12 @@ async function render() {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let cat = '';
 $('menu').innerHTML = MOCK.menu.map(m => (m.category !== cat ? `<div class="cat">${cat = m.category}</div>` : '') + `<div class="item" data-c="${m.code}">${m.name}<br><small>¥${m.price.toFixed(2)} · ${m.kcal} kcal</small></div>`).join('');
-$('menu').onclick = e => { const el = e.target.closest('.item'); if (!el) return; const who = $('who').value.trim(); if (!who) { toast('先填你的名字'); $('who').focus(); return; } localStorage.feastWho = who; state.p.push([who, el.dataset.c, 1]); render(); };
+$('menu').onclick = e => { const el = e.target.closest('.item'); if (!el) return; const who = $('who').value.trim(); if (!who) { toast(tr('needName')); $('who').focus(); return; } localStorage.feastWho = who; state.p.push([who, el.dataset.c, 1]); render(); };
 $('picks').onclick = e => { const i = e.target.dataset.i; if (i != null) { state.p.splice(+i, 1); render(); } };
 $('title').oninput = e => { state.t = e.target.value; render(); }; $('organizer').oninput = e => { state.o = e.target.value; render(); };
 $('theme').onchange = render; $('reset').onclick = () => { state.p = []; render(); };
-$('share').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('链接已复制，发到群里吧！'); } catch { prompt('复制这个链接：', location.href); } };
-$('copymsg').onclick = async () => { if (!lastMsg) return; try { await navigator.clipboard.writeText(lastMsg); toast('收款消息已复制，粘贴到群里吧'); } catch { prompt('复制这段消息：', lastMsg); } };
+$('share').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast(tr('copied')); } catch { prompt('复制这个链接：', location.href); } };
+$('copymsg').onclick = async () => { if (!lastMsg) return; try { await navigator.clipboard.writeText(lastMsg); toast(tr('msgCopied')); } catch { prompt('复制这段消息：', lastMsg); } };
 $('sharecard').onclick = async () => { const data = { title: '麦麦拼单 · ' + state.t, text: lastMsg || '一起拼麦当劳！', url: location.href };
   if (navigator.share) { try { await navigator.share(data); } catch {} } else { $('share').click(); } };
 fetch('https://api.github.com/repos/Jasonin2099/mcd-team-feast').then(r => r.json()).then(j => { if (j.stargazers_count != null) $('stars').textContent = '· ' + j.stargazers_count; }).catch(() => {});
@@ -140,6 +141,33 @@ $('dlpng').onclick = () => { if (!lastSVG) return; const img = new Image(); cons
   img.onload = () => { const c = document.createElement('canvas'); c.width = w * 2; c.height = h * 2; const x = c.getContext('2d'); x.scale(2, 2); x.drawImage(img, 0, 0); c.toBlob(b => download('feast-receipt.png', b)); };
   img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(lastSVG); };
 function toast(s) { const t = $('toast'); t.textContent = s; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 1800); }
+
+const I18N = {
+  en: { name: 'mcd-team-feast', tagline: 'Start a group order → share the link → everyone picks → best coupons → fair split → a dev-style receipt card',
+    cta: 'Like it? <a href="https://github.com/Jasonin2099/mcd-team-feast" target="_blank" rel="noopener">Star it on GitHub ⭐</a> — it really helps.',
+    overseas: 'ℹ️ Live pricing/ordering works with McDonald’s China (mainland) only. This page uses fictional demo data, so it works anywhere — have fun!',
+    h1: '① Start', h2: '② Who are you & what do you want', tap: 'Tap an item below to join', h3: '③ Current order', share: '🔗 Copy invite link', reset: 'Clear',
+    privacy: 'The whole order lives in the link (no server). Teammates add their picks and send the new link back.', h4: '④ Receipt card', copymsg: '📋 Copy payment message', sharecard: '📤 Share',
+    h5: '⑤ Real pricing via McDonald’s China MCP (mainland only)', who: 'Your name, e.g. Li (frontend)', needName: 'Enter your name first', copied: 'Link copied — share it!', msgCopied: 'Payment message copied' },
+  ja: { name: '麦麦拼单', tagline: '注文を立ち上げる → リンクを共有 → みんなが選ぶ → 最適クーポン → 公平に割り勘 → エンジニア風レシートカード',
+    cta: '気に入ったら <a href="https://github.com/Jasonin2099/mcd-team-feast" target="_blank" rel="noopener">GitHub で Star ⭐</a> をお願いします',
+    overseas: 'ℹ️ 実際の価格計算・注文はマクドナルド中国（中国本土）のみ対応です。このページは架空のデモデータで動くので、日本からでも遊べます。',
+    h1: '① 注文を立ち上げる', h2: '② 名前と注文', tap: '下の商品をタップで参加', h3: '③ 現在の注文', share: '🔗 招待リンクをコピー', reset: 'クリア',
+    privacy: '注文内容はすべてリンクに埋め込まれます（サーバー不要）。メンバーが選んだら、新しいリンクを送り返してもらいましょう。', h4: '④ レシートカード', copymsg: '📋 集金メッセージをコピー', sharecard: '📤 共有',
+    h5: '⑤ マクドナルド中国 MCP で実際に計算（中国本土のみ）', who: 'あなたの名前（例：李さん）', needName: '先に名前を入力してください', copied: 'リンクをコピーしました', msgCopied: '集金メッセージをコピーしました' },
+};
+const ZH = {}; document.querySelectorAll('[data-i]').forEach(el => { ZH[el.dataset.i] ??= el.innerHTML; });
+Object.assign(ZH, { who: $('who').placeholder, needName: '先填你的名字', copied: '链接已复制，发到群里吧！', msgCopied: '收款消息已复制，粘贴到群里吧' });
+let LANG = localStorage.feastLang || ((navigator.language || '').startsWith('ja') ? 'ja' : (navigator.language || '').startsWith('zh') ? 'zh' : 'en');
+const tr = k => (I18N[LANG] || ZH)[k] ?? ZH[k];
+function applyLang() {
+  document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : LANG;
+  document.querySelectorAll('[data-i]').forEach(el => { el.innerHTML = tr(el.dataset.i) || ''; });
+  $('overseas').style.display = LANG === 'zh' ? 'none' : 'block'; $('who').placeholder = tr('who');
+  document.querySelectorAll('#langs a').forEach(a => a.classList.toggle('on', a.dataset.l === LANG));
+}
+$('langs').onclick = e => { const l = e.target.dataset.l; if (!l) return; e.preventDefault(); LANG = l; localStorage.feastLang = l; applyLang(); };
+applyLang();
 render();
 </script>
 </body>

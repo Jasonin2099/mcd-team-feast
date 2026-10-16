@@ -1,5 +1,7 @@
 <div align="center">
 
+**中文** | [English](README.en.md) | [日本語](README.ja.md)
+
 <img src="assets/hero.webp" width="100%" alt="麦麦拼单 mcd-team-feast：1024 程序员节，一行命令请全组吃麦当劳" />
 
 # 🍔 麦麦拼单 · mcd-team-feast
@@ -19,7 +21,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![M-CODE](https://img.shields.io/badge/M--CODE-程序员节创意开发大赛-FFC72C)](https://github.com/M-China/mcd-developer-innovation-challenge)
 
-**[🌐 在线体验](https://jasonin2099.github.io/mcd-team-feast/)** · **[🚀 快速开始](#-快速开始)** · **[🤖 接入 AI Agent](#-接入-ai-agentclaude--cursor--workbuddy)** · **[English](#english)**
+**[🌐 在线体验](https://jasonin2099.github.io/mcd-team-feast/)** · **[🚀 快速开始](#-快速开始)** · **[🤖 接入 AI Agent](#-接入-ai-agentclaude--cursor--workbuddy)** · **[English](README.en.md)** · **[日本語](README.ja.md)**
 
 <img src="assets/demo.svg" width="760" alt="终端演示动画" />
 
@@ -181,17 +183,3 @@ node scripts/make-assets.js   # 重新生成演示动画、主题示例与 socia
 
 </div>
 
----
-
-## English
-
-**mcd-team-feast** is a team-order coordinator for McDonald's China, built on the official [McDonald's MCP Server](https://github.com/M-China/mcd-mcp-server). Start a group order, let teammates pick items (CLI or a [shareable web link](https://jasonin2099.github.io/mcd-team-feast/)), and it will merge the order, search for the cheapest coupon combination via `calculate-price`, split the bill fairly (to the cent), and render a shareable receipt card styled as a `git log`, a GitHub PR, or a paper receipt.
-
-```bash
-npx github:Jasonin2099/mcd-team-feast demo --mock --theme all   # no token needed
-```
-
-- Zero dependencies, Node 18+.
-- Works as a CLI, an MCP server (`feast mcp`) and an Agent Skill (`SKILL.md`).
-- Real orders require an explicit confirmation code; the MCP server never exposes order creation.
-- Requires a McDonald's China MCP token (mainland phone number) for live data; `--mock` works everywhere.
