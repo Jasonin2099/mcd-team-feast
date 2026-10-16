@@ -14,7 +14,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![McDonald's MCP](https://img.shields.io/badge/麦当劳-MCP-DA291C?logo=mcdonalds&logoColor=FFC72C)](https://github.com/M-China/mcd-mcp-server)
 [![Zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
-[![Tests](https://img.shields.io/badge/tests-26%20passing-brightgreen)](test)
+[![Tests](https://img.shields.io/badge/tests-30%20passing-brightgreen)](test)
 [![Web](https://img.shields.io/badge/在线体验-GitHub%20Pages-FFC72C)](https://jasonin2099.github.io/mcd-team-feast/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![M-CODE](https://img.shields.io/badge/M--CODE-程序员节创意开发大赛-FFC72C)](https://github.com/M-China/mcd-developer-innovation-challenge)
@@ -25,7 +25,7 @@
 
 <sub>↑ 三个浏览器并排录制：团长开团 → 两位成员打开链接加入 → 各点各的实时同步 → 团长锁单 → 最终分账（演示数据）</sub>
 
-**如果对你有帮助，请点右上角 ⭐ Star，让更多需要拼单的同学看到它。**
+觉得好用的话，点个 ⭐ 就是对我们最大的鼓励。
 
 </div>
 

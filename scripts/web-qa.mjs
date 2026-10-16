@@ -14,7 +14,7 @@ async function check(p, label) {
     const txt = document.body.innerText; const bad = [];
     if (/\bundefined\b|\bNaN\b|\[object Object\]/.test(txt)) bad.push('bad text: ' + (txt.match(/.{0,30}(undefined|NaN|\[object Object\]).{0,30}/) || [''])[0]);
     const de = document.documentElement; if (de.scrollWidth > de.clientWidth + 1) bad.push(`h-overflow ${de.scrollWidth}>${de.clientWidth}`);
-    const els = [...document.querySelectorAll('button, a, h1, h2, h3, input, .stat, .badge, .item')].filter(e => { const s = getComputedStyle(e); const rc = e.getBoundingClientRect(); return rc.width > 0 && rc.height > 0 && s.visibility !== 'hidden' && !e.closest('[hidden]') && !e.closest('.nav') && !e.closest('.bar') && !e.closest('.appbar'); });
+    const els = [...document.querySelectorAll('button, a, h1, h2, h3, input, .stat, .badge, .item')].filter(e => { const s = getComputedStyle(e); const rc = e.getBoundingClientRect(); return rc.width > 0 && rc.height > 0 && s.visibility !== 'hidden' && !e.closest('[hidden]') && !(e.closest('details:not([open])') && !e.closest('summary')) && !e.closest('.nav') && !e.closest('.bar') && !e.closest('.appbar'); });
     const R = els.map(e => [e, e.getBoundingClientRect()]);
     for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) {
       const [a, ra] = R[i], [c, rc] = R[j]; if (a.contains(c) || c.contains(a)) continue;

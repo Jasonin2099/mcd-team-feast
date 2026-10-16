@@ -203,3 +203,5 @@ details.agg{box-shadow:none;background:var(--bg2);margin:10px 0 0;padding:0 12px
 details.sg-pick{box-shadow:none;background:var(--bg2);margin:10px 0 0;padding:0 12px}details.sg-pick>summary{padding:10px 0;font-size:14px}
 .sg-list{display:grid;gap:6px;padding-bottom:10px}.sg-list button{text-align:left;border:0;background:var(--card);border-radius:10px;padding:9px 12px;font-size:14px;cursor:pointer;min-height:40px;overflow-wrap:anywhere}
 .sg-list button:active{transform:scale(.98)}
+:focus-visible{outline:2px solid #FFC72C;outline-offset:2px;border-radius:8px}
+.sg-list button:focus-visible,.pill:focus-visible,.btn:focus-visible{outline:2px solid #FFC72C;outline-offset:2px}
