@@ -1,8 +1,10 @@
 import { MOCK } from '../src/mock.js';
 import { localPrice } from '../src/providers.js';
 import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
-import { renderSVG } from '../src/card-core.js';
+import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js';
 import { I18N } from './i18n.js';
+import { Room, createRoom } from './sync.js';
+import qrcode from './vendor/qrcode.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -29,8 +31,10 @@ export function decodeState(h) {
 }
 const DEFAULT = () => ({ t: LANG === 'zh' ? '1024 程序员节下午茶' : LANG === 'ja' ? '1024 おやつ会' : 'Programmer’s Day snacks', o: '', p: [] });
 const SAMPLE = [['老王(后端)', 'BM001', 1], ['老王(后端)', 'DR001', 1], ['小李(前端)', 'BM002', 1], ['小李(前端)', 'DS001', 1], ['阿杰(算法)', 'BM003', 1], ['阿杰(算法)', 'DR002', 1], ['Mia(产品)', 'SN001', 1], ['Mia(产品)', 'DR003', 1], ['大刘(运维)', 'SN002', 2], ['大刘(运维)', 'DS003', 1]];
-let state = null, hadLink = false;
-if (location.hash.length > 1) { try { state = decodeState(location.hash.slice(1)); hadLink = true; } catch { state = null; } }
+let state = null, hadLink = false, room = null;
+const ridOf = h => (/^#?r=([A-Za-z0-9_-]{8})$/.exec(h || '') || [])[1];
+if (ridOf(location.hash)) { hadLink = true; }
+else if (location.hash.length > 1) { try { state = decodeState(location.hash.slice(1)); hadLink = true; } catch { state = null; } }
 const lastHash = (() => { try { return localStorage.feastLast; } catch { return null; } })();
 
 // ---------- 计算 ----------
@@ -85,13 +89,15 @@ function show(v, tb = tab, y = 0, kind) {
   if (kind) animate(kind);
 }
 const url = () => location.pathname + (state && cur !== 'home' ? '#' + encodeState(state) : location.hash);
-function go(v, tb = 'order') { saveScroll(); curKey = newKey(); history.pushState({ v, tab: tb, k: curKey }, '', location.pathname + (state ? '#' + encodeState(state) : '')); show(v, tb, 0, 'push'); }
+function go(v, tb = 'order') { saveScroll(); curKey = newKey(); history.pushState({ v, tab: tb, k: curKey }, '', location.pathname + location.search + hashFor()); show(v, tb, 0, 'push'); }
 function switchTab(tb) { tabScroll[tab] = scrollY; history.replaceState({ ...(history.state || {}), v: 'app', tab: tb, k: curKey }, '', location.href); show('app', tb, tabScroll[tb] || 0, 'tab'); }
 addEventListener('popstate', e => { const s = e.state || { v: 'home' }; if (s.ov) return; curKey = s.k || newKey(); show(s.v, s.tab || 'order', scrollStore[curKey] || 0, 'back'); });
+const hashFor = () => room ? '#r=' + room.id : state ? '#' + encodeState(state) : '';
 function saveHash() {
+  if (room) { history.replaceState({ ...(history.state || {}), k: curKey }, '', location.pathname + location.search + '#r=' + room.id); try { localStorage.feastLast = 'r=' + room.id; } catch {} return; }
   if (!state) return;
   const h = '#' + encodeState(state);
-  history.replaceState({ ...(history.state || {}), k: curKey }, '', location.pathname + h);
+  history.replaceState({ ...(history.state || {}), k: curKey }, '', location.pathname + location.search + h);
   try { localStorage.feastLast = h.slice(1); } catch {}
 }
 
@@ -164,8 +170,8 @@ feast order --confirm &lt;code&gt;</pre></div></details>
     ${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><div>${esc(a)}</div></details>`).join('')}
   </div></section>
   <footer><div class="wrap">${esc(t('footer'))}<br><a href="${REPO}" target="_blank" rel="noopener">github.com/Jasonin2099/mcd-team-feast</a></div></footer>`;
-  $('start').onclick = () => { if (!state) state = DEFAULT(); go('app', 'order'); };
-  $('resume')?.addEventListener('click', () => { try { state = decodeState(lastHash); } catch { state = DEFAULT(); } go('app', 'order'); });
+  $('start').onclick = () => { if (room) { room.close(); room = null; } if (!state) state = DEFAULT(); go('app', 'order'); };
+  $('resume')?.addEventListener('click', () => { const rid = ridOf(lastHash); if (rid) { enterRoom(rid); go('app', 'order'); return; } try { state = decodeState(lastHash); } catch { state = DEFAULT(); } go('app', 'order'); });
 }
 
 // ---------- 拼单 ----------
@@ -192,16 +198,18 @@ function renderApp() {
   tab === 'order' ? renderOrder() : renderBill();
 }
 function renderOrder() {
+  if (room) return renderRoomOrder();
   $('apptitle').textContent = state.t || t('appTitle');
   const counts = Object.fromEntries(state.p.filter(x => x[0] === me).map(x => [x[1], x[2]]));
   let cat = '';
   $('appbody').innerHTML = `<div class="order-grid">
   <div class="card a-team">
-    <div class="card-h"><h3>${esc(t('teamT'))}</h3><span class="badge">🔒 ${esc(t('privacy'))}</span></div>
+    <div class="card-h"><h3>${esc(t('teamT'))}</h3><span class="chip off">🔗 ${esc(t('modeLink'))}</span></div>
     <div class="row">
       <label class="field"><span>${esc(t('teamName'))}</span><input type="text" id="fTitle" maxlength="40" value="${esc(state.t)}"></label>
       <label class="field"><span>${esc(t('organizer'))}</span><input type="text" id="fOrg" maxlength="24" value="${esc(state.o)}"></label>
     </div>
+    <div class="syncbox"><button class="btn primary sm" id="goLive"><span>⚡ ${esc(t('goLive'))}</span></button><p class="hint">${esc(t('goLiveD'))}</p><p class="hint">🔒 ${esc(t('privacy'))}</p></div>
   </div>
   <div class="card a-me">
     <div class="card-h"><h3>${esc(t('meT'))}</h3></div>
@@ -229,8 +237,10 @@ function renderOrder() {
   };
   $('inviteBtn').onclick = e => act(e.currentTarget, async () => { saveHash(); await copyText(location.href); return location.href.length > 1800 ? fmt(t('longLink'), { n: location.href.length }) : t('copied'); });
   $('billBtn').onclick = () => go('app', 'bill');
+  $('goLive').onclick = e => act(e.currentTarget, goLive);
 }
 function renderList() {
+  if (room) return renderRoomList();
   const groups = new Map();
   state.p.forEach(([w, c, q], i) => { if (!groups.has(w)) groups.set(w, []); groups.get(w).push({ c, q, i }); });
   const n = state.p.reduce((s, x) => s + x[2], 0);
@@ -249,21 +259,171 @@ function renderList() {
   };
 }
 
+
+// ---------- 实时拼单房间（服务器只存昵称 + 点单，24h 过期）----------
+function roomToState(s) {
+  const seen = {}, p = [];
+  for (const m of s.members) {
+    let n = m.name; seen[n] = (seen[n] || 0) + 1; if (seen[n] > 1) n = `${n} (${seen[n]})`; m._n = n;
+    for (const [c, q] of m.picks) if (MOCK.menu.some(x => x.code === c)) p.push([n, c, q]);
+  }
+  return { t: s.t, o: s.members.find(m => m.mid === s.host)?._n || s.o || '', p };
+}
+let shape = '', billRev = -1, cdTimer = 0;
+function enterRoom(id) {
+  room?.close(); room = new Room(id); state = { t: '', o: '', p: [] }; shape = ''; billRev = -1;
+  room.addEventListener('state', () => {
+    state = roomToState(room.state); if (room.me) me = room.me._n;
+    if (cur !== 'app') return;
+    if (tab === 'order') refreshRoom(); else if (room.state.rev !== billRev) { billRev = room.state.rev; renderBill(); }
+  });
+  room.addEventListener('status', () => { if (cur === 'app' && tab === 'order') { const c = $('modeChip'); if (c) c.outerHTML = chipHTML(); if (room.status === 'gone') renderRoomOrder(); } else if (cur === 'app') renderBill(); });
+  room.connect();
+  try { localStorage.feastLast = 'r=' + id; } catch {}
+}
+function chipHTML() {
+  const st = room.status; const cls = st === 'live' ? 'live' : st === 'gone' ? 'bad' : 'wait';
+  return `<span class="chip ${cls}" id="modeChip" role="status">${st === 'live' ? '● ' : ''}${esc(t('st_' + st))}</span>`;
+}
+async function goLive() {
+  const name = (me || state.o || '').trim();
+  if (!name) { $('fMe')?.focus(); throw new Error(t('needName')); }
+  const mine = state.p.filter(x => x[0] === name).map(x => [x[1], x[2]]);
+  let j; try { j = await createRoom({ t: state.t, name, picks: mine }); } catch (e) { throw new Error(t('syncDown')); }
+  enterRoom(j.id); room.apply(j.state); saveHash(); renderApp();
+  return t('liveOn');
+}
+const priceOf = c => MOCK.menu.find(m => m.code === c)?.price || 0;
+const nameOf = c => MOCK.menu.find(m => m.code === c)?.name || c;
+function fmtLeft(ms) { const s = Math.max(0, Math.round(ms / 1000)); const m = Math.floor(s / 60); return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
+function tickCd() {
+  const s = room?.state; document.querySelectorAll('.cd').forEach(el => {
+    if (!s?.deadline) { el.textContent = t('noDeadline'); el.classList.remove('late'); return; }
+    const left = s.deadline - Date.now(); const hm = new Date(s.deadline).toLocaleTimeString(LANG === 'en' ? 'en-US' : LANG === 'ja' ? 'ja-JP' : 'zh-CN', { hour: '2-digit', minute: '2-digit' });
+    el.textContent = left > 0 ? fmt(t('cdLeft'), { at: hm, left: fmtLeft(left) }) : fmt(t('cdOver'), { at: hm }); el.classList.toggle('late', left <= 0);
+  });
+}
+function renderRoomOrder() {
+  const s = room.state, joined = !!room.me, locked = !!s?.locked, host = room.isHost;
+  shape = [!!s, joined, locked, host, room.status === 'gone'].join();
+  $('apptitle').textContent = s?.t || t('appTitle');
+  if (room.status === 'gone') {
+    $('appbody').innerHTML = `<div class="card empty"><b>${esc(t('st_gone'))}</b>${esc(t('goneD'))}</div>`;
+    $('appbar').innerHTML = `<button class="btn primary" id="toLink"><span>${esc(t('toLink'))}</span></button>`;
+    $('toLink').onclick = () => { const st = { ...state }; room.close(); room = null; state = st; saveHash(); renderApp(); }; return;
+  }
+  if (!s) { $('appbody').innerHTML = `<div class="card empty"><b>${chipHTML()}</b></div>`; $('appbar').innerHTML = ''; return; }
+  const myCounts = Object.fromEntries(room.me?.picks || []);
+  let cat = '';
+  $('appbody').innerHTML = `<div class="order-grid">
+  <div class="card a-team">
+    <div class="card-h"><h3>${esc(t('teamT'))}</h3>${chipHTML()}</div>
+    ${host ? `<label class="field"><span>${esc(t('teamName'))}</span><input type="text" id="fTitle" maxlength="40" value="${esc(s.t)}"></label>`
+      : `<p class="room-t"><b>${esc(s.t || t('appTitle'))}</b><span class="muted small"> · ${esc(t('organizer'))} ${esc(state.o)}</span></p>`}
+    <div class="dl"><span class="cd">${esc(t('noDeadline'))}</span>${host && !locked ? `<span class="dl-b"><button class="pill" data-dl="10">+10′</button><button class="pill" data-dl="30">+30′</button><button class="pill" data-dl="0">${esc(t('dlClear'))}</button></span>` : ''}</div>
+    ${locked ? `<p class="lockbar">🔒 ${esc(t(host ? 'lockedHost' : 'lockedMember'))}</p>` : ''}
+    <p class="hint">🔒 ${esc(t('privacyLive'))}</p>
+  </div>
+  <div class="card a-me">
+    ${joined ? `<div class="card-h"><h3>${esc(t('meT'))}</h3>${host ? `<span class="badge">${esc(t('hostTag'))}</span>` : ''}</div>
+      <input type="text" id="fMe" maxlength="24" value="${esc(room.me.name)}" ${locked ? 'disabled' : ''}>`
+    : `<div class="card-h"><h3>${esc(t('joinT'))}</h3></div><div class="join"><input type="text" id="fMe" maxlength="24" placeholder="${esc(t('mePh'))}" value="${esc(me)}" ${locked ? 'disabled' : ''}><button class="btn primary" id="joinBtn" ${locked ? 'disabled' : ''}><span>${esc(t('join'))}</span></button></div>${locked ? `<p class="hint">${esc(t('lockedJoin'))}</p>` : ''}`}
+  </div>
+  <div class="card a-list" id="listCard"></div>
+  <div class="card a-menu${locked ? ' locked' : ''}">
+    <div class="card-h"><h3>${esc(t('menuT'))}</h3><span class="muted small">${esc(t(locked ? 'menuLocked' : 'menuHint'))}</span></div>
+    <div class="menu" id="menu">${MOCK.menu.map(m => (m.category !== cat ? `<div class="cat">${esc(cat = m.category)}</div>` : '') +
+      `<button class="item" data-c="${m.code}" ${locked ? 'disabled' : ''}><b>${esc(m.name)}</b><small>¥${m.price.toFixed(2)} · ${m.kcal} kcal</small>${myCounts[m.code] ? `<span class="q">${myCounts[m.code]}</span>` : ''}</button>`).join('')}</div>
+  </div></div>`;
+  renderRoomList(); renderRoomBar(); tickCd(); clearInterval(cdTimer); cdTimer = setInterval(() => { if (!room || cur !== 'app') return clearInterval(cdTimer); tickCd(); }, 1000);
+  let tt; $('fTitle') && ($('fTitle').oninput = e => { $('apptitle').textContent = e.target.value || t('appTitle'); clearTimeout(tt); tt = setTimeout(() => room.op('meta', { t: e.target.value }).catch(err => toast(errMsg(err))), 400); });
+  let rn; if (joined) $('fMe').oninput = e => { const v = e.target.value.trim(); if (!v) return; try { localStorage.feastWho = v; } catch {} clearTimeout(rn); rn = setTimeout(() => room.op('rename', { name: v }).catch(err => toast(errMsg(err))), 500); };
+  else { $('fMe').oninput = e => { me = e.target.value.trim(); }; $('joinBtn').onclick = e => act(e.currentTarget, async () => { const v = $('fMe').value.trim(); if (!v) { $('fMe').focus(); throw new Error(t('needName')); } try { localStorage.feastWho = v; } catch {} await room.join(v); return fmt(t('joined'), { who: v }); }); $('fMe').onkeydown = e => { if (e.key === 'Enter') $('joinBtn').click(); }; }
+  document.querySelectorAll('[data-dl]').forEach(b => b.onclick = async () => { const m = +b.dataset.dl; const d = room.state.deadline; b.disabled = true; try { await room.op('deadline', { at: m ? (d && d > Date.now() ? d : Date.now()) + m * 60e3 : null }); } catch (err) { toast(errMsg(err)); } finally { b.disabled = false; } });
+  $('menu').onclick = e => {
+    const el = e.target.closest('.item'); if (!el || room.state.locked) return;
+    if (!room.me) { toast(t('joinFirst')); $('fMe').focus(); return; }
+    roomAdd(el.dataset.c, 1);
+  };
+}
+function roomAdd(code, d) {
+  const map = new Map(room.me.picks); const n = (map.get(code) || 0) + d;
+  if (n > 0) map.set(code, Math.min(99, n)); else map.delete(code);
+  room.setPicks([...map]).catch(e => toast(errMsg(e)));
+}
+function errMsg(e) { return e?.status === 423 ? t('isLocked') : e?.status === 404 ? t('st_gone') : t('syncFail'); }
+function refreshRoom() {
+  if (!$('listCard') || !room) return renderApp();
+  const s = room.state; const now = [!!s, !!room.me, !!s?.locked, room.isHost, room.status === 'gone'].join();
+  if (now !== shape) return renderRoomOrder();
+  $('apptitle').textContent = (document.activeElement?.id === 'fTitle' ? $('fTitle').value : s.t) || t('appTitle');
+  if ($('fTitle') && document.activeElement?.id !== 'fTitle') $('fTitle').value = s.t;
+  const p = document.querySelector('.room-t b'); if (p) p.textContent = s.t || t('appTitle');
+  const mc = Object.fromEntries(room.me?.picks || []);
+  document.querySelectorAll('#menu .item').forEach(el => { let q = el.querySelector('.q'); const n = mc[el.dataset.c]; if (n) { if (!q) { q = document.createElement('span'); q.className = 'q'; el.appendChild(q); } q.textContent = n; } else q?.remove(); });
+  renderRoomList(); renderRoomBar(); tickCd();
+}
+function renderRoomList() {
+  const s = room.state; if (!s) return;
+  const people = s.members; const n = people.reduce((a, m) => a + m.picks.reduce((x, [, q]) => x + q, 0), 0);
+  const total = people.reduce((a, m) => a + m.picks.reduce((x, [c, q]) => x + Math.round(priceOf(c) * 100) * q, 0), 0);
+  const online = people.filter(m => m.online).length, done = people.filter(m => m.done).length;
+  const agg = new Map(); people.forEach(m => m.picks.forEach(([c, q]) => agg.set(c, (agg.get(c) || 0) + q)));
+  const status = m => !m.picks.length ? ['none', t('psNone')] : m.done ? ['done', t('psDone')] : ['busy', t('psBusy')];
+  const mine = m => m.mid === room.creds?.mid && !s.locked;
+  $('listCard').innerHTML = `<div class="card-h"><h3>${esc(t('listT'))}</h3><span class="muted small">${fmt(t('presence'), { on: online, all: people.length, done })}</span></div>
+  <div class="sum"><div><span>${esc(t('sumOrig'))}</span><b>¥${Y(total)}</b></div><div><span>${esc(t('sumItems'))}</span><b>${n}</b></div><div><span>${esc(t('psDone'))}</span><b>${done}/${people.length}</b></div></div>` +
+  people.map(m => { const [k, lab] = status(m); const sub = m.picks.reduce((x, [c, q]) => x + Math.round(priceOf(c) * 100) * q, 0);
+    return `<div class="person"><div class="person-h"><span class="n"><i class="dot ${m.online ? 'on' : ''}" title="${esc(t(m.online ? 'online' : 'offline'))}"></i>${esc(m._n || m.name)}${m.mid === s.host ? ` <small class="tag">${esc(t('hostTag'))}</small>` : ''}${m.mid === room.creds?.mid ? ` <small class="tag me">${esc(t('meTag'))}</small>` : ''}</span><span class="ps ${k}">${esc(lab)}</span><span class="sub">¥${Y(sub)}</span></div>` +
+      m.picks.map(([c, q]) => `<div class="line"><span class="nm">${esc(nameOf(c))}</span><span class="pr">¥${(priceOf(c) * q).toFixed(2)}</span>${mine(m) ? `<span class="qty"><button data-c="${c}" data-d="-1" aria-label="-">−</button><span>${q}</span><button data-c="${c}" data-d="1" aria-label="+">+</button></span>` : `<span class="qn">×${q}</span>`}</div>`).join('') + '</div>'; }).join('') +
+  (agg.size ? `<details class="agg"><summary>${esc(t('aggT'))}</summary><div>${[...agg].map(([c, q]) => `<div class="line"><span class="nm">${esc(nameOf(c))}</span><span class="qn">×${q}</span></div>`).join('')}</div></details>` : '');
+  $('listCard').onclick = e => { const b = e.target.closest('button[data-c]'); if (b && room.me) roomAdd(b.dataset.c, +b.dataset.d); };
+}
+function renderRoomBar() {
+  const s = room.state, host = room.isHost, me_ = room.me; let h = '';
+  if (s.locked) h = host ? `<button class="btn" id="unlockBtn"><span>${esc(t('unlock'))}</span></button><button class="btn primary" id="billBtn"><span>${esc(t('toBill'))} →</span></button>`
+    : `<button class="btn primary" id="billBtn"><span>${esc(t('finalBill'))} →</span></button>`;
+  else h = `<button class="btn" id="inviteBtn"><span>${esc(t('inviteQr'))}</span></button>` + (host ? `<button class="btn primary" id="lockBtn"><span>${esc(t('lock'))}</span></button>`
+    : me_ ? `<button class="btn ${me_.done ? '' : 'primary'}" id="doneBtn" ${me_.picks.length ? '' : 'disabled'}><span>${esc(t(me_.done ? 'undoDone' : 'imDone'))}</span></button>` : '');
+  $('appbar').innerHTML = h;
+  $('billBtn') && ($('billBtn').onclick = () => go('app', 'bill'));
+  $('inviteBtn') && ($('inviteBtn').onclick = showInvite);
+  $('doneBtn') && ($('doneBtn').onclick = e => act(e.currentTarget, async () => { await room.op('done', { done: !room.me.done }); return ''; }));
+  $('lockBtn') && ($('lockBtn').onclick = e => { const left = s.members.filter(m => !m.done && m.mid !== s.host && m.picks.length).length; if (!s.members.some(m => m.picks.length)) { toast(t('lockEmpty')); return; } if (left && !confirm(fmt(t('lockConfirm'), { n: left }))) return; act(e.currentTarget, async () => { await room.op('lock'); return t('lockedOk'); }); });
+  $('unlockBtn') && ($('unlockBtn').onclick = e => act(e.currentTarget, async () => { await room.op('unlock'); return t('unlockedOk'); }));
+}
+function showInvite() {
+  const url = location.origin + location.pathname + location.search + '#r=' + room.id;
+  const q = qrcode(0, 'M'); q.addData(url); q.make();
+  const ov = $('overlay');
+  ov.innerHTML = `<div class="invite"><div class="qr">${q.createSvgTag({ cellSize: 6, margin: 2, scalable: true })}</div><p class="muted small">${esc(t('scanJoin'))}</p><code>${esc(url)}</code><div class="row2"><button class="btn primary" id="cpLink"><span>${esc(t('invite'))}</span></button><button class="btn" id="ovClose"><span>${esc(t('closeOv'))}</span></button></div></div>`;
+  ov.hidden = false; history.pushState({ ...(history.state || {}), ov: 1 }, '', location.href);
+  $('cpLink').onclick = e => act(e.currentTarget, async () => { await copyText(url); return t('copied'); });
+  $('ovClose').onclick = () => history.back();
+  addEventListener('popstate', () => { ov.hidden = true; ov.innerHTML = ''; }, { once: true });
+}
+
 // ---------- 账单 ----------
 const narrow = matchMedia('(max-width: 600px)').matches;
-let cardTheme = narrow ? 'receipt' : 'git', lastSVG = '', lastMsg = '';
+let cardTheme = narrow ? 'receipt' : 'git', lastSVG = '', lastMsg = '', lastCtx = null;
+// 导出时把子集字体内嵌进 SVG，保证 PNG/SVG 在任何设备上字形一致
+let fontCSSP = null;
+const b64 = buf => { let s = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+function getFontCSS() { return fontCSSP ||= Promise.all(Object.entries(FONT_FILES).map(async ([k, f]) => { const r = await fetch('web/fonts/' + f); if (!r.ok) throw new Error('font'); return [k, b64(await r.arrayBuffer())]; })).then(e => fontCSS(Object.fromEntries(e))).catch(e => { fontCSSP = null; throw e; }); }
+async function exportSVG() { let css = ''; try { css = await getFontCSS(); } catch {} return renderSVG(lastCtx, cardTheme, { fontCSS: css }); }
 async function renderBill() {
   $('apptitle').textContent = state.t || t('appTitle');
   const r = await compute(state);
   if (!r) { $('appbody').innerHTML = `<div class="card empty"><b>${esc(t('emptyT'))}</b>${esc(t('billEmpty'))}</div>`; $('appbar').innerHTML = `<button class="btn primary" id="b2">‹ ${esc(t('tabOrder'))}</button>`; $('b2').onclick = () => history.back(); return; }
-  lastSVG = renderSVG({ team: r.team, bill: r.bill, plan: r.best, mode: 'mock', now: MOCK.now }, cardTheme);
+  lastCtx = { team: r.team, bill: r.bill, plan: r.best, mode: 'mock', now: MOCK.now }; lastSVG = renderSVG(lastCtx, cardTheme);
   const url = location.origin + location.pathname;
   lastMsg = [fmt(t('msgHead'), { t: r.team.title }), fmt(t('msgLine'), { paid: Y(r.best.total), off: Y(r.best.discount), avg: Y(r.bill.avg) }),
     ...r.bill.people.map(p => fmt(t('msgPay'), { who: p.who, org: r.team.organizer, pay: Y(p.pay), items: p.items.join('、') })), fmt(t('msgFoot'), { url })].join('\n');
   const q = s => /[\s()（）'"]/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s;
   const cli = ['alias feast="npx -y github:Jasonin2099/mcd-team-feast"', 'feast stores <keyword> --city <city>', `feast new --store <code> --title ${q(r.team.title)} --by ${q(r.team.organizer)}`,
     ...r.team.picks.map(p => `feast pick ${q(p.who)} ${q(p.name)} ${p.qty}`), 'feast checkout --theme all'].join('\n');
-  $('appbody').innerHTML = `
+  const banner = room?.state ? `<p class="lockbar ${room.state.locked ? '' : 'soft'}">${room.state.locked ? '🔒 ' + esc(t('billFinal')) : '⏳ ' + esc(t('billLive'))}</p>` : '';
+  $('appbody').innerHTML = `${banner}
   <div class="tabs" style="padding-top:0"><div class="seg" id="themes">${['git', 'pr', 'receipt'].map(k => `<button data-th="${k}" aria-pressed="${k === cardTheme}">${esc(t({ git: 'thGit', pr: 'thPr', receipt: 'thReceipt' }[k]))}</button>`).join('')}</div></div>
   <div class="cols"><div class="card preview" style="padding:12px">${lastSVG}</div>
   <div><div class="card">
@@ -283,7 +443,7 @@ async function renderBill() {
   $('imgBtn').onclick = e => act(e.currentTarget, saveImage);
   $('msgBtn').onclick = e => act(e.currentTarget, async () => { await copyText(lastMsg); return t('copied'); });
   $('shareBtn').onclick = e => act(e.currentTarget, shareIt);
-  $('svgBtn').onclick = () => download('feast-receipt.svg', new Blob([lastSVG], { type: 'image/svg+xml' }));
+  $('svgBtn').onclick = async () => download('feast-receipt.svg', new Blob([await exportSVG()], { type: 'image/svg+xml' }));
 }
 function svgToPngBlob(svg) {
   return new Promise((res, rej) => {
@@ -309,14 +469,14 @@ function showOverlay(blob) {
   addEventListener('popstate', close, { once: true });
 }
 async function saveImage() {
-  const blob = await svgToPngBlob(lastSVG);
+  const blob = await svgToPngBlob(await exportSVG());
   if (isWeChat || /iPhone|iPad/.test(navigator.userAgent)) { showOverlay(blob); return t('imgReady'); }
   download(`feast-receipt-${cardTheme}.png`, blob); return t('imgReady');
 }
 async function shareIt() {
   saveHash(); const data = { title: '麦麦拼单 · ' + (state.t || ''), text: lastMsg, url: location.href };
   if (navigator.share) {
-    try { const blob = await svgToPngBlob(lastSVG); const f = new File([blob], 'feast-receipt.png', { type: 'image/png' }); if (navigator.canShare?.({ files: [f] })) data.files = [f]; } catch {}
+    try { const blob = await svgToPngBlob(await exportSVG()); const f = new File([blob], 'feast-receipt.png', { type: 'image/png' }); if (navigator.canShare?.({ files: [f] })) data.files = [f]; } catch {}
     try { await navigator.share(data); return t('done'); } catch (e) { if (e.name === 'AbortError') return ''; }
   }
   await copyText(lastMsg + '\n' + location.href); return t('copied');
@@ -346,6 +506,7 @@ fetch('https://api.github.com/repos/Jasonin2099/mcd-team-feast').then(r => r.ok 
 // ---------- 启动 ----------
 applyLang();
 await buildSample();
-if (hadLink) { history.replaceState({ v: 'home', k: newKey() }, '', location.pathname); history.pushState({ v: 'app', tab: 'order', k: curKey }, '', location.pathname + '#' + encodeState(state)); show('app', 'order', scrollStore[curKey] || 0); }
-else { history.replaceState({ v: 'home', k: curKey }, '', location.pathname); show('home', 'order', scrollStore[curKey] || 0); }
+{ const rid = ridOf(location.hash); if (rid) enterRoom(rid); }
+if (hadLink) { history.replaceState({ v: 'home', k: newKey() }, '', location.pathname + location.search); history.pushState({ v: 'app', tab: 'order', k: curKey }, '', location.pathname + location.search + hashFor()); show('app', 'order', scrollStore[curKey] || 0); }
+else { history.replaceState({ v: 'home', k: curKey }, '', location.pathname + location.search); show('home', 'order', scrollStore[curKey] || 0); }
 window.__feast = { encodeState, decodeState, get state() { return state; } };

@@ -2,3 +2,6 @@ These font files are subsets of Noto Sans CJK (Noto Sans SC / Noto Sans JP),
 Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
 Licensed under the SIL Open Font License, Version 1.1: https://openfontlicense.org
 Regenerate with: python3 scripts/subset-fonts.py
+
+FeastMono-*.woff2: subset of JetBrains Mono (c) The JetBrains Mono Project Authors, SIL Open Font License 1.1.
+FeastCJK-400.woff2: subset of Noto Sans Mono CJK SC (c) Google / Adobe, SIL Open Font License 1.1.

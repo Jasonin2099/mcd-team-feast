@@ -5,6 +5,13 @@ export const cw = c => (c.charCodeAt(0) > 255 ? 2 : 1);
 export const width = s => [...String(s)].reduce((w, c) => w + cw(c), 0);
 export const padEnd = (s, n) => s + ' '.repeat(Math.max(0, n - width(s)));
 export const clip = (s, n) => { let out = '', w = 0; for (const c of String(s)) { if (w + cw(c) > n - 1) return out + '…'; out += c; w += cw(c); } return out; };
+// 卡片字体（Feast Mono = JetBrains Mono 子集，Feast CJK = Noto Sans Mono CJK SC 子集）；传入 base64 即内嵌到 SVG
+export const FONT_FILES = { mono400: 'FeastMono-400.woff2', mono700: 'FeastMono-700.woff2', cjk400: 'FeastCJK-400.woff2' };
+export function fontCSS(b64) {
+  const f = (fam, w, d) => d ? `@font-face{font-family:'${fam}';font-weight:${w};src:url(data:font/woff2;base64,${d}) format('woff2')}` : '';
+  return f('Feast Mono', 400, b64.mono400) + f('Feast Mono', 700, b64.mono700) + f('Feast CJK', 400, b64.cjk400);
+}
+const withFonts = (svg, css) => css ? svg.replace(/^(<svg[^>]*>)/, `$1<defs><style>${css}</style></defs>`) : svg;
 // 确定性的 40 位“commit hash”（FNV-1a 变体，够玩不够密码学）
 export function fakeHash(str) {
   let out = '';
@@ -51,8 +58,8 @@ export function receiptLines(ctx) {
 }
 
 const C = { y: '#FFC72C', g: '#7EE787', r: '#FF7B72', w: '#E6EDF3', d: '#8B949E', n: '#E6EDF3' };
-const MONO = `'DejaVu Sans Mono','Noto Sans Mono CJK SC','Noto Sans CJK SC',Menlo,Consolas,monospace`;
-const SANS = `-apple-system,'Segoe UI','Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif`;
+const MONO = `'Feast Mono','Feast CJK','DejaVu Sans Mono','Noto Sans Mono CJK SC','Noto Sans CJK SC',Menlo,Consolas,monospace`;
+const SANS = `-apple-system,'Segoe UI','Feast CJK','Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif`;
 
 function gitTheme(ctx) {
   const lines = receiptLines(ctx);
@@ -105,38 +112,43 @@ function prTheme(ctx) {
 
 function receiptTheme(ctx) {
   const { team, bill, plan, mode } = ctx; const S = summary(ctx);
-  const W = 460, lh = 26; const L = [];
-  const row = (l, r = '', o = {}) => L.push({ l, r, ...o });
-  row('================================', '', { c: true });
-  for (const p of bill.people) { row(p.who, `¥${yuan(p.pay)}`, { b: true }); for (const it of p.items) row('  ' + clip(it, 26), '', { s: true }); }
-  row('--------------------------------', '', { c: true });
-  row('商品原价', `¥${yuan(plan.subtotal)}`);
-  for (const a of plan.applied) row(clip(a.title, 22), a.discount != null ? `-¥${yuan(a.discount)}` : '');
-  if (S.promo > 0) row('门店活动价', `-¥${yuan(S.promo)}`);
-  row('实付合计', `¥${yuan(plan.total)}`, { b: true, big: true });
-  row(`人均 (${bill.people.length} 人)`, `¥${yuan(bill.avg)}`, { b: true });
-  row('================================', '', { c: true });
-  const top = 150, H = top + L.length * lh + 150;
-  const body = L.map((x, i) => { const y = top + i * lh; const fs = x.big ? 19 : x.s ? 13 : 15; const fill = x.s ? '#666' : '#222';
-    return x.c ? `<text x="${W / 2}" y="${y}" font-size="14" fill="#999" text-anchor="middle">${x.l}</text>` :
-      `<text x="32" y="${y}" font-size="${fs}" fill="${fill}" ${x.b ? 'font-weight="700"' : ''} xml:space="preserve">${esc(x.l)}</text><text x="${W - 32}" y="${y}" font-size="${fs}" fill="${fill}" text-anchor="end" ${x.b ? 'font-weight="700"' : ''}>${esc(x.r)}</text>`; }).join('\n');
-  const bars = Array.from({ length: 46 }, (_, i) => { const w = (parseInt(S.hash[i % 40], 16) % 3) + 1; return `<rect x="${60 + i * 7.4}" y="${H - 108}" width="${w}" height="44" fill="#222"/>`; }).join('');
+  const W = 460, X0 = 34, X1 = W - 34; const L = [];
+  // 行类型：person 每人一行（粗）/ item 菜品（小、灰、缩进）/ kv 普通 / total 实付 / sep 分隔线 / gap 空隙
+  const add = (k, l = '', r = '') => L.push({ k, l, r });
+  add('sep');
+  for (const p of bill.people) { add('person', clip(p.who, 22), `¥${yuan(p.pay)}`); for (const it of p.items) add('item', clip(it, 30)); add('gap'); }
+  L.pop(); add('sep');
+  add('kv', '商品原价', `¥${yuan(plan.subtotal)}`);
+  for (const a of plan.applied) add('kv', clip(a.title, 24), a.discount != null ? `-¥${yuan(a.discount)}` : '');
+  if (S.promo > 0) add('kv', '门店活动价', `-¥${yuan(S.promo)}`);
+  add('sep2'); add('total', '实付合计', `¥${yuan(plan.total)}`); add('kv', `人均 · ${bill.people.length} 人`, `¥${yuan(bill.avg)}`); add('sep');
+  const H_ = { sep: 18, sep2: 14, gap: 6, person: 26, item: 21, kv: 25, total: 34 };
+  let y = 156; const body = L.map(x => {
+    const h = H_[x.k]; const base = y + h - 7; y += h;
+    if (x.k === 'gap') return '';
+    if (x.k === 'sep' || x.k === 'sep2') return `<line x1="${X0}" x2="${X1}" y1="${y - h / 2}" y2="${y - h / 2}" stroke="#2A2A2A" stroke-opacity="${x.k === 'sep' ? .55 : .25}" stroke-width="1" stroke-dasharray="${x.k === 'sep' ? '5 4' : '2 4'}"/>`;
+    const st = { person: ['15', '700', '#1A1A1A'], item: ['12.5', '400', '#6B6B6B'], kv: ['14', '400', '#333'], total: ['21', '700', '#111'] }[x.k];
+    const lx = x.k === 'item' ? X0 + 14 : X0;
+    return `<text x="${lx}" y="${base}" font-size="${st[0]}" font-weight="${st[1]}" fill="${st[2]}" xml:space="preserve">${esc(x.l)}</text>` +
+      (x.r ? `<text x="${X1}" y="${base}" font-size="${st[0]}" font-weight="${st[1]}" fill="${x.r.startsWith('-') ? '#C0392B' : st[2]}" text-anchor="end" style="font-variant-numeric:tabular-nums">${esc(x.r)}</text>` : '');
+  }).join('\n');
+  const H = y + 140;
+  const bars = Array.from({ length: 46 }, (_, i) => { const w = (parseInt(S.hash[i % 40], 16) % 3) + 1; return `<rect x="${60 + i * 7.4}" y="${H - 112}" width="${w}" height="42" fill="#222"/>`; }).join('');
   let paper = `M0 0 H${W} V${H - 10}`; for (let x = W; x >= 0; x -= 10) paper += ` L${x} ${H - ((x / 10) % 2 ? 0 : 10)}`; paper += ' Z';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="${MONO}">
   <path d="${paper}" fill="#FFFDF7"/>
-  <rect x="${W / 2 - 24}" y="22" width="48" height="36" rx="6" fill="#DA291C"/><text x="${W / 2}" y="50" font-size="28" font-weight="900" fill="#FFC72C" text-anchor="middle" font-family="sans-serif">M</text>
-  <text x="${W / 2}" y="86" font-size="18" font-weight="700" fill="#222" text-anchor="middle">${esc(clip(team.title, 28))}</text>
-  <text x="${W / 2}" y="110" font-size="13" fill="#666" text-anchor="middle">${esc(clip(team.store?.storeName || '', 34))}</text>
-  <text x="${W / 2}" y="130" font-size="12" fill="#999" text-anchor="middle">${esc(S.date)} ${esc(S.festival)} · NO.${S.hash.slice(0, 8)}</text>
+  <rect x="${W / 2 - 22}" y="24" width="44" height="34" rx="7" fill="#DA291C"/><text x="${W / 2}" y="50" font-size="26" font-weight="700" fill="#FFC72C" text-anchor="middle" font-family="${SANS}">M</text>
+  <text x="${W / 2}" y="90" font-size="19" font-weight="700" fill="#111" text-anchor="middle" letter-spacing=".5">${esc(clip(team.title, 28))}</text>
+  <text x="${W / 2}" y="114" font-size="12.5" fill="#666" text-anchor="middle">${esc(clip(team.store?.storeName || '', 34))}</text>
+  <text x="${W / 2}" y="134" font-size="11.5" fill="#999" text-anchor="middle" letter-spacing=".3">${esc(S.date)} ${esc(S.festival)} · NO.${S.hash.slice(0, 8).toUpperCase()}</text>
   ${body}
   ${bars}
-  <text x="${W / 2}" y="${H - 44}" font-size="12" fill="#888" text-anchor="middle">谢谢惠顾 · Happy 1024 · ${mode === 'mock' ? 'mock 演示' : 'via 麦当劳 MCP'}</text>
-  <text x="${W / 2}" y="${H - 26}" font-size="11" fill="#AAA" text-anchor="middle">github.com/Jasonin2099/mcd-team-feast</text>
+  <text x="${W / 2}" y="${H - 46}" font-size="11.5" fill="#888" text-anchor="middle">谢谢惠顾 · Happy 1024 · ${mode === 'mock' ? 'mock 演示' : 'via 麦当劳 MCP'}</text>
+  <text x="${W / 2}" y="${H - 28}" font-size="10.5" fill="#AAA" text-anchor="middle" letter-spacing=".3">github.com/Jasonin2099/mcd-team-feast</text>
 </svg>`;
 }
 
-export function renderSVG(ctx, theme = 'git') {
-  if (theme === 'pr') return prTheme(ctx);
-  if (theme === 'receipt') return receiptTheme(ctx);
-  return gitTheme(ctx);
+export function renderSVG(ctx, theme = 'git', opts = {}) {
+  const svg = theme === 'pr' ? prTheme(ctx) : theme === 'receipt' ? receiptTheme(ctx) : gitTheme(ctx);
+  return withFonts(svg, opts.fontCSS);
 }

@@ -1,0 +1,20 @@
+[Unit]
+Description=麦麦拼单 feast-sync realtime rooms (127.0.0.1:8787, feast.ikxing.com)
+After=network.target
+
+[Service]
+User=feast-sync
+Group=feast-sync
+Environment=PORT=8787 HOST=127.0.0.1 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://jasonin2099.github.io
+ExecStart=/usr/bin/node /srv/feast-sync/sync-server.js
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/feast-sync
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target
