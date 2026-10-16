@@ -96,7 +96,7 @@ async function op(r, b) {
     case 'picks': if (!isMe) return [403, { error: 'auth' }]; if (r.locked) return [423, { error: 'locked' }]; m.picks = picksOf(b.picks); if (!m.picks.length) m.done = false; break;
     case 'done': if (!isMe) return [403, { error: 'auth' }]; if (r.locked) return [423, { error: 'locked' }]; m.done = !!b.done; break;
     case 'leave': if (!isMe) return [403, { error: 'auth' }]; if (r.locked) return [423, { error: 'locked' }]; if (b.mid === r.hostMid) return [400, { error: 'host' }]; delete r.members[b.mid]; break;
-    case 'meta': if (!isHost) return [403, { error: 'host' }]; if (b.t != null) r.t = clean(b.t, LIMITS.title); if (b.o != null) r.o = clean(b.o, LIMITS.name); if (b.sign != null) r.sign = clean(String(b.sign).replace(/[<>]/g, ''), 40); break;
+    case 'meta': if (!isHost) return [403, { error: 'host' }]; if (b.t != null) r.t = clean(b.t, LIMITS.title); if (b.o != null) r.o = clean(b.o, LIMITS.name); if (b.sign != null) r.sign = clean(String(b.sign).replace(/[<>]/g, ''), 96); break;
     case 'deadline': if (!isHost) return [403, { error: 'host' }]; r.deadline = b.at == null ? null : Math.min(Math.max(+b.at || 0, Date.now()), r.created + TTL); break;
     case 'lock': if (!isHost) return [403, { error: 'host' }]; r.locked = true; r.lockedAt = Date.now(); break;
     case 'unlock': if (!isHost) return [403, { error: 'host' }]; r.locked = false; break;

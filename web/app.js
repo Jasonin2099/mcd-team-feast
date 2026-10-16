@@ -1,10 +1,10 @@
 import { MOCK } from '../src/mock.js';
 import { localPrice } from '../src/providers.js';
 import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
-import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016f';
-import { I18N } from './i18n.js?v=20261016f';
-import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016f';
-import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016f';
+import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016g';
+import { I18N } from './i18n.js?v=20261016g';
+import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016g';
+import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016g';
 import qrcode from './vendor/qrcode.js';
 
 const $ = id => document.getElementById(id);

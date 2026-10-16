@@ -38,10 +38,10 @@ export const SIGNS = [
   L('本单已通过全员 code review', 'This order passed team-wide code review', 'この注文は全員のコードレビュー通過済み'),
 ];
 
-export function cleanSign(s) {
+export function cleanSign(s, max = SIGN_MAX) {
   let out = '', w = 0;
   for (const c of String(s ?? '').replace(/[\u0000-\u001f\u007f\u2028\u2029<>]/g, '').replace(/\s+/g, ' ').trim()) {
-    const cw = c.codePointAt(0) > 255 ? 2 : 1; if (w + cw > SIGN_MAX) break; out += c; w += cw;
+    const cw = c.codePointAt(0) > 255 ? 2 : 1; if (w + cw > max) break; out += c; w += cw;
   }
   return out;
 }
@@ -61,7 +61,7 @@ const usable = (x, c) => !(x.zh.includes('{top}') && !c.top) && !(x.zh.includes(
 export function candidates(c = {}, lang = 'zh') {
   const t = tagsFor(c); const L = SIGNS.filter(x => usable(x, c));
   const hit = L.filter(x => x.tags.some(g => g !== 'any' && t.has(g))), rest = L.filter(x => !hit.includes(x) && x.tags.includes('any'));
-  return [...hit, ...rest].map(x => cleanSign(fill(x[lang] || x.zh, c)));
+  return [...hit, ...rest].map(x => cleanSign(fill(x[lang] || x.zh, c), 96));
 }
 // 确定性挑选（同一个团大家看到同一句），seed 变就换一句
 export function pickSign(c = {}, lang = 'zh', seed = 0) {
