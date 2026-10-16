@@ -1,6 +1,7 @@
 // 网页文案（中/英/日）。保持短句。
 export const I18N = {
   zh: {
+    netErr: '网络/DNS 不通',
     sumItems: '总份数',
     modeLink: "链接模式（离线）",
     goLive: "开启实时同步",
@@ -80,6 +81,7 @@ export const I18N = {
     theme: '外观', thAuto: '跟随系统', thLight: '浅色', thDark: '深色', thGold: '紫金', star: 'Star',
   },
   en: {
+    netErr: 'unreachable (network/DNS)',
     sumItems: 'Items',
     modeLink: "Link mode (offline)",
     goLive: "Go live (real-time sync)",
@@ -159,6 +161,7 @@ export const I18N = {
     theme: 'Appearance', thAuto: 'System', thLight: 'Light', thDark: 'Dark', thGold: 'Purple & gold', star: 'Star',
   },
   ja: {
+    netErr: 'に接続できません（ネットワーク/DNS）',
     sumItems: '合計数',
     modeLink: "リンクモード（オフライン）",
     goLive: "リアルタイム同期を開始",

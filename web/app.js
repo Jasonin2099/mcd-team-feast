@@ -1,9 +1,9 @@
 import { MOCK } from '../src/mock.js';
 import { localPrice } from '../src/providers.js';
 import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
-import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js';
-import { I18N } from './i18n.js';
-import { Room, createRoom } from './sync.js';
+import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016c';
+import { I18N } from './i18n.js?v=20261016c';
+import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016c';
 import qrcode from './vendor/qrcode.js';
 
 const $ = id => document.getElementById(id);
@@ -289,7 +289,9 @@ async function goLive() {
   const name = (me || state.o || '').trim();
   if (!name) { $('fMe')?.focus(); throw new Error(t('needName')); }
   const mine = state.p.filter(x => x[0] === name).map(x => [x[1], x[2]]);
-  let j; try { j = await createRoom({ t: state.t, name, picks: mine }); } catch (e) { throw new Error(t('syncDown')); }
+  let j, err;
+  for (let i = 0; i < 3 && !j; i++) { try { j = await createRoom({ t: state.t, name, picks: mine }); } catch (e) { err = e; console.warn('[feast] create room failed', SYNC_URL, e); if (e.status && e.status < 500 && e.status !== 429) break; await new Promise(r => setTimeout(r, 800 * (i + 1))); } }
+  if (!j) throw new Error(t('syncDown') + (err?.status ? ` (HTTP ${err.status})` : ` (${new URL(SYNC_URL).host} ${t('netErr')})`));
   enterRoom(j.id); room.apply(j.state); saveHash(); renderApp();
   return t('liveOn');
 }
