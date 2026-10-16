@@ -1,11 +1,16 @@
 <div align="center">
 
+<img src="assets/hero.webp" width="100%" alt="麦麦拼单 mcd-team-feast：1024 程序员节，一行命令请全组吃麦当劳" />
+
 # 🍔 麦麦拼单 · mcd-team-feast
 
-**1024 程序员节，请全组吃麦当劳，只需要一行命令（或一个链接）。**
+**一句话：在群里发个链接，大家各点各的，它帮你凑单、挑最省的券、算好每人转多少钱，再出一张 `git log` 风账单卡。**
+
+> 示例（真实麦当劳 MCP 计价）：5 人早餐拼单，原价 ¥139.50 → 实付 **¥125.30**，人均 **¥25.06**，一行命令出账单。
 
 开团 → 大家报名 → 自动凑单 + 挑最优券 → 人均分账 → 生成一张 `git log` 风格的账单卡，直接甩进工作群。
 
+[![GitHub stars](https://img.shields.io/github/stars/Jasonin2099/mcd-team-feast?style=social)](https://github.com/Jasonin2099/mcd-team-feast/stargazers)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![McDonald's MCP](https://img.shields.io/badge/麦当劳-MCP-DA291C?logo=mcdonalds&logoColor=FFC72C)](https://github.com/M-China/mcd-mcp-server)
 [![Zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
@@ -17,6 +22,8 @@
 **[🌐 在线体验](https://jasonin2099.github.io/mcd-team-feast/)** · **[🚀 快速开始](#-快速开始)** · **[🤖 接入 AI Agent](#-接入-ai-agentclaude--cursor--workbuddy)** · **[English](#english)**
 
 <img src="assets/demo.svg" width="760" alt="终端演示动画" />
+
+**如果对你有帮助，请点右上角 ⭐ Star 支持一下，这会让更多需要拼单的同学看到它。**
 
 </div>
 
@@ -55,6 +62,7 @@
 | 🧾 **三种账单卡** | git log / GitHub PR / 小票，PNG · SVG · HTML 一键导出 |
 | 🔍 **`feast blame`** | git blame 式排行：钱包贡献榜首、热量担当（`list-nutrition-foods`）、最克制 |
 | 🤖 **MCP Server + Skill** | `feast mcp` 自身就是 MCP Server，附 [`SKILL.md`](SKILL.md)，一句“帮我们组拼一单麦当劳”即可 |
+| 📋 **一键收款群消息** | 网页版生成“@小李 转 老王 ¥24.90”这样的群消息，复制即发 |
 | 🛡 **绝不误下单** | 真正下单必须带 checkout 生成的确认码；MCP Server 根本不暴露下单工具 |
 | 🧪 **`--mock` 离线体验** | 没有 Token 也能完整跑通全流程 |
 | 📦 **零依赖** | 只需要 Node 18+，`npx` 即用 |
@@ -157,13 +165,17 @@ node scripts/make-assets.js   # 重新生成演示动画、主题示例与 socia
 
 欢迎 PR！新主题、新彩蛋命令、更聪明的分账规则都很棒，详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
+## 📈 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Jasonin2099/mcd-team-feast&type=Date)](https://star-history.com/#Jasonin2099/mcd-team-feast&Date)
+
 ## ⚠️ 声明
 
 本项目为「麦当劳程序员节创意开发大赛」参赛作品，由参赛者独立开发，非麦当劳官方产品。`--mock` 与网页版中的餐品、价格与优惠券均为虚构示例；真实餐品信息、价格及供应状态以麦当劳官方渠道实时结果为准。热量数据仅供参考，不构成营养建议。详见 [CONTEST_DECLARATION.md](CONTEST_DECLARATION.md)。
 
 <div align="center">
 
-### ⭐ 如果它帮你省下了算账的时间，点个 Star 吧！
+### ⭐ 如果对你有帮助，请点个 Star！
 
 **也欢迎把账单卡晒到群里 —— 下一顿下午茶，也许就是你发起的。**
 
