@@ -243,3 +243,7 @@ details.sg-pick{box-shadow:none;background:var(--bg2);margin:10px 0 0;padding:0 
 .rc-btn[data-state=ok]{color:var(--ok);box-shadow:0 0 0 1.5px var(--ok)}
 .rc-btn[data-state=fail]{color:#c4282f;box-shadow:0 0 0 1.5px #e5484d}
 .rc-presence{margin:-4px 0 14px}
+.chip.conn{background:var(--bg2);color:var(--fg2)}.chip.warn{background:rgba(214,120,0,.14);color:#b35c00}
+@keyframes rowflash{from{background:rgba(255,199,44,.45)}to{background:transparent}}
+.line.flash{animation:rowflash 1s ease-out;border-radius:8px}
+@media (prefers-reduced-motion:reduce){.line.flash{animation:none;background:rgba(255,199,44,.25)}}

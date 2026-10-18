@@ -4,9 +4,9 @@ import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
 import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016i';
 import { I18N } from './i18n.js?v=20261016i';
 import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016i';
-import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016i';
+import { Room, createRoom, SYNC_URL } from './sync.js?v=20261018t';
 import qrcode from './vendor/qrcode.js';
-import { ICONS as RC_IC, BTN_ICON, receiptHTML, exportReceipt, rcFilename } from './room-receipt.js?v=20261018s';
+import { ICONS as RC_IC, BTN_ICON, receiptHTML, exportReceipt, rcFilename } from './room-receipt.js?v=20261018t';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -210,7 +210,7 @@ feast order --confirm &lt;code&gt;</pre></div></details>
     <p class="foot-note">${esc(t('footer'))}</p>
     <p class="foot-note">${esc(t('footLic'))}</p>
   </div></footer>`;
-  $('tryLive').onclick = () => { if (room) { room.close(); room = null; } state = DEFAULT(); go('app', 'order'); setTimeout(() => { const el = $('fMe'); if (el && !el.value) el.focus(); toast(t('tryToast')); document.getElementById('goLive')?.classList.add('pulse'); }, 380); };
+  $('tryLive').onclick = () => { if (room) { room.close(); room = null; } state = DEFAULT(); go('app', 'order'); setTimeout(() => { const el = $('fMe'); if (el && !el.value) el.focus(); toast(t('tryToast')); }, 380); };
   reveal();
   $('start').onclick = () => { if (room) { room.close(); room = null; } if (!state) state = DEFAULT(); go('app', 'order'); };
   $('resume')?.addEventListener('click', () => { const rid = ridOf(lastHash); if (rid) { enterRoom(rid); go('app', 'order'); return; } try { state = decodeState(lastHash); } catch { state = DEFAULT(); } go('app', 'order'); });
@@ -246,12 +246,12 @@ function renderOrder() {
   let cat = '';
   $('appbody').innerHTML = `<div class="order-grid">
   <div class="card a-team">
-    <div class="card-h"><h3>${esc(t('teamT'))}</h3><span class="chip off">🔗 ${esc(t('modeLink'))}</span></div>
+    <div class="card-h"><h3>${esc(t('teamT'))}</h3><span class="chip conn" id="modeChip" role="status">${esc(t(SYNC_URL ? 'st_connecting' : 'st_offline'))}</span></div>
     <div class="row">
       <label class="field"><span>${esc(t('teamName'))}</span><input type="text" id="fTitle" maxlength="40" value="${esc(state.t)}"></label>
       <label class="field"><span>${esc(t('organizer'))}</span><input type="text" id="fOrg" maxlength="24" value="${esc(state.o)}"></label>
     </div>
-    <div class="syncbox"><button class="btn primary sm" id="goLive"><span>⚡ ${esc(t('goLive'))}</span></button><p class="hint">${esc(t('goLiveD'))}</p><p class="hint">🔒 ${esc(t('privacy'))}</p></div>
+    <p class="hint">🔒 ${esc(t('privacy'))}</p>
   </div>
   <div class="card a-me">
     <div class="card-h"><h3>${esc(t('meT'))}</h3></div>
@@ -269,17 +269,18 @@ function renderOrder() {
   $('fTitle').oninput = e => { state.t = e.target.value; $('apptitle').textContent = state.t || t('appTitle'); saveHash(); };
   $('fOrg').oninput = e => { state.o = e.target.value; saveHash(); };
   $('fMe').oninput = e => { me = e.target.value.trim(); try { localStorage.feastWho = me; } catch {} };
+  $('fMe').onchange = () => autoLive();
   $('menu').onclick = e => {
     const el = e.target.closest('.item'); if (!el) return;
     if (!me) { toast(t('needName')); $('fMe').focus(); return; }
     addItem(el.dataset.c, 1); saveHash();
     const n = state.p.find(x => x[0] === me && x[1] === el.dataset.c)?.[2] || 0;
     let q = el.querySelector('.q'); if (!q) { q = document.createElement('span'); q.className = 'q'; el.appendChild(q); } q.textContent = n;
-    renderList();
+    renderList(); autoLive();
   };
   $('inviteBtn').onclick = e => act(e.currentTarget, async () => { saveHash(); await copyText(location.href); return location.href.length > 1800 ? fmt(t('longLink'), { n: location.href.length }) : t('copied'); });
   $('billBtn').onclick = () => go('app', 'bill');
-  $('goLive').onclick = e => act(e.currentTarget, goLive);
+  autoLive();
 }
 function renderList() {
   if (room) return renderRoomList();
@@ -311,10 +312,16 @@ function roomToState(s) {
   }
   return { t: s.t, o: s.members.find(m => m.mid === s.host)?._n || s.o || '', p };
 }
-let shape = '', billRev = -1, cdTimer = 0;
+let shape = '', billRev = -1, cdTimer = 0, flashKeys = new Set();
 function enterRoom(id) {
   room?.close(); room = new Room(id); state = { t: '', o: '', p: [] }; shape = ''; billRev = -1;
+  let prevMids = null, prevQ = null;
   room.addEventListener('state', () => {
+    const ms = room.state.members, myMid = room.creds?.mid;
+    const q = new Map(); ms.forEach(m => m.picks.forEach(([c, n]) => q.set(m.mid + ':' + c, n)));
+    if (prevMids) { const fresh = ms.filter(m => !prevMids.has(m.mid) && m.mid !== myMid); if (fresh.length) toast(fresh.map(m => fmt(t('memberJoined'), { who: m.name })).join(' · ')); }
+    if (prevQ) flashKeys = new Set([...q].filter(([k, n]) => n > (prevQ.get(k) || 0) && !k.startsWith(myMid + ':')).map(([k]) => k));
+    prevMids = new Set(ms.map(m => m.mid)); prevQ = q;
     state = roomToState(room.state); if (room.me) me = room.me._n;
     if (cur !== 'app') return;
     if (tab === 'order') refreshRoom(); else if (room.state.rev !== billRev) { billRev = room.state.rev; renderBill(); }
@@ -324,8 +331,16 @@ function enterRoom(id) {
   try { localStorage.feastLast = 'r=' + id; } catch {}
 }
 function chipHTML() {
-  const st = room.status; const cls = st === 'live' ? 'live' : st === 'gone' ? 'bad' : 'wait';
+  const st = room.status; const cls = { live: 'live', gone: 'bad', reconnecting: 'warn' }[st] || 'conn';
   return `<span class="chip ${cls}" id="modeChip" role="status">${st === 'live' ? '● ' : ''}${esc(t('st_' + st))}</span>`;
+}
+// 实时同步默认开启：有昵称就自动建房间，失败则保留本地并在下次操作时重试
+let liveBusy = false, liveFailAt = 0;
+async function autoLive() {
+  if (room || liveBusy || !SYNC_URL || !(me || '').trim() || Date.now() - liveFailAt < 5000) return;
+  liveBusy = true;
+  try { await goLive(); } catch (e) { liveFailAt = Date.now(); const c = $('modeChip'); if (c) { c.className = 'chip warn'; c.textContent = t('st_reconnecting'); } console.warn('[feast] auto live failed', e); toast(e.message); }
+  finally { liveBusy = false; }
 }
 async function goLive() {
   const name = (me || state.o || '').trim();
@@ -335,7 +350,7 @@ async function goLive() {
   for (let i = 0; i < 3 && !j; i++) { try { j = await createRoom({ t: state.t, name, picks: mine }); } catch (e) { err = e; console.warn('[feast] create room failed', SYNC_URL, e); if (e.status && e.status < 500 && e.status !== 429) break; await new Promise(r => setTimeout(r, 800 * (i + 1))); } }
   if (!j) throw new Error(err?.status ? `${t('syncDown')} (HTTP ${err.status})` : fmt(t('netHint'), { host: SYNC_URL ? new URL(SYNC_URL).host : '—' }));
   enterRoom(j.id); room.apply(j.state); saveHash(); renderApp();
-  return t('liveOn');
+  return '';
 }
 const priceOf = c => MOCK.menu.find(m => m.code === c)?.price || 0;
 const nameOf = c => MOCK.menu.find(m => m.code === c)?.name || c;
@@ -419,8 +434,9 @@ function renderRoomList() {
   <div class="sum"><div><span>${esc(t('sumOrig'))}</span><b>¥${Y(total)}</b></div><div><span>${esc(t('sumItems'))}</span><b>${n}</b></div><div><span>${esc(t('psDone'))}</span><b>${done}/${people.length}</b></div></div>` +
   people.map(m => { const [k, lab] = status(m); const sub = m.picks.reduce((x, [c, q]) => x + Math.round(priceOf(c) * 100) * q, 0);
     return `<div class="person"><div class="person-h"><span class="n"><i class="dot ${m.online ? 'on' : ''}" title="${esc(t(m.online ? 'online' : 'offline'))}"></i>${esc(m._n || m.name)}${m.mid === s.host ? ` <small class="tag">${esc(t('hostTag'))}</small>` : ''}${m.mid === room.creds?.mid ? ` <small class="tag me">${esc(t('meTag'))}</small>` : ''}</span><span class="ps ${k}">${esc(lab)}</span><span class="sub">¥${Y(sub)}</span></div>` +
-      m.picks.map(([c, q]) => `<div class="line"><span class="nm">${esc(nameOf(c))}</span><span class="pr">¥${(priceOf(c) * q).toFixed(2)}</span>${mine(m) ? `<span class="qty"><button data-c="${c}" data-d="-1" aria-label="-">−</button><span>${q}</span><button data-c="${c}" data-d="1" aria-label="+">+</button></span>` : `<span class="qn">×${q}</span>`}</div>`).join('') + '</div>'; }).join('') +
+      m.picks.map(([c, q]) => `<div class="line${flashKeys.has(m.mid + ':' + c) ? ' flash' : ''}"><span class="nm">${esc(nameOf(c))}</span><span class="pr">¥${(priceOf(c) * q).toFixed(2)}</span>${mine(m) ? `<span class="qty"><button data-c="${c}" data-d="-1" aria-label="-">−</button><span>${q}</span><button data-c="${c}" data-d="1" aria-label="+">+</button></span>` : `<span class="qn">×${q}</span>`}</div>`).join('') + '</div>'; }).join('') +
   (agg.size ? `<details class="agg"><summary>${esc(t('aggT'))}</summary><div>${[...agg].map(([c, q]) => `<div class="line"><span class="nm">${esc(nameOf(c))}</span><span class="qn">×${q}</span></div>`).join('')}</div></details>` : '');
+  flashKeys = new Set();
   $('rcBtn').onclick = saveRoomReceipt;
   $('listCard').onclick = e => { const b = e.target.closest('button[data-c]'); if (b && room.me) roomAdd(b.dataset.c, +b.dataset.d); };
 }

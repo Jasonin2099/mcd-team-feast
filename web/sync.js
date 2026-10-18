@@ -21,31 +21,65 @@ export async function createRoom({ t, name, picks }) {
 }
 
 export class Room extends EventTarget {
+  static STALE_MS = 10000; static POLL_MS = 5000;
   constructor(id) { super(); this.id = id; this.creds = loadCreds(id); this.state = null; this.status = 'connecting'; this.es = null; this.tries = 0; this.pending = null; this.pendingTimer = 0; }
   get isHost() { return !!this.creds?.hostKey; }
   get me() { return this.state?.members.find(m => m.mid === this.creds?.mid) || null; }
   set(st) { this.status = st; this.dispatchEvent(new Event('status')); }
+  // 订阅：打开房间即连 SSE；断线指数退避重连；回前台/网络恢复立刻重连并拉一次全量。
+  // 兜底：STALE_MS 内没收到任何推送，就每 POLL_MS 拉一次全量；拉到更新的版本说明推送流静默断了，立刻重连。
   connect() {
     this.close(false);
+    if (this.status !== 'connecting') this.set(this.state ? 'reconnecting' : 'connecting');
     const q = this.creds ? `?mid=${encodeURIComponent(this.creds.mid)}&key=${encodeURIComponent(this.creds.key)}` : '';
     const es = this.es = new EventSource(`${SYNC_URL}/rooms/${this.id}/events${q}`);
-    es.addEventListener('state', e => { this.tries = 0; this.apply(JSON.parse(e.data)); if (this.status !== 'live') this.set('live'); });
+    this.lastMsg = Date.now();
+    const alive = () => { this.lastMsg = Date.now(); this.tries = 0; if (this.status !== 'live') this.set('live'); };
+    es.addEventListener('state', e => { alive(); this.apply(JSON.parse(e.data)); });
+    es.addEventListener('ping', alive);
     es.onerror = async () => {
       if (this.es !== es) return;
       if (es.readyState === EventSource.CLOSED) { // 服务器返回非 200：查一下房间是否还在
         try { await req(`/rooms/${this.id}`); } catch (err) { if (err.status === 404) { this.set('gone'); return; } }
-        this.tries++; this.set('reconnecting'); clearTimeout(this.rt); this.rt = setTimeout(() => this.connect(), Math.min(15000, 1000 * 2 ** this.tries));
+        this.retry();
       } else this.set('reconnecting');
     };
-    // 回到前台时立刻重连（手机切后台常被断）
-    if (!this._vis) { this._vis = () => { if (document.visibilityState === 'visible' && this.status !== 'live' && this.status !== 'gone') this.connect(); }; document.addEventListener('visibilitychange', this._vis); addEventListener('online', this._vis); }
+    if (!this._vis) {
+      this._vis = () => { if (document.visibilityState !== 'visible' || this.status === 'gone') return; this.refresh(); if (this.status !== 'live' || this.stale()) this.connect(); };
+      this._off = () => this.status !== 'gone' && this.set('reconnecting');
+      document.addEventListener('visibilitychange', this._vis); addEventListener('online', this._vis); addEventListener('offline', this._off);
+    }
+    if (!this.wd) this.wd = setInterval(() => this.watchdog(), 1000);
+  }
+  stale() { return Date.now() - (this.lastMsg || 0) > Room.STALE_MS; }
+  retry() { this.tries++; this.set('reconnecting'); clearTimeout(this.rt); this.rt = setTimeout(() => this.connect(), Math.min(15000, 1000 * 2 ** this.tries)); }
+  watchdog() {
+    if (this.status === 'gone' || typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    if (Date.now() - (this.lastMsg || 0) > Room.STALE_MS && Date.now() - (this.lastPoll || 0) >= Room.POLL_MS) this.refresh(true);
+  }
+  /** 拉全量最新状态（兜底 / 回前台 / 重连后） */
+  async refresh(check = false) {
+    this.lastPoll = Date.now();
+    try {
+      const s = await req(`/rooms/${this.id}`);
+      // 兜底拉到的比推送的新 → 推送流已经断了却没报错，重开连接
+      const behind = check && this.state && s.rev > this.state.rev;
+      this.apply(s); if (behind) this.connect();
+      return s;
+    }
+    catch (err) { if (err.status === 404) this.set('gone'); return null; }
   }
   apply(s) {
+    if (!s) return;
+    if (this.state && typeof s.rev === 'number' && s.rev < this.state.rev) return; // 晚到的旧状态不覆盖新的
     // 自己还没发出去的改动优先，避免回弹
     if (this.pending && this.creds) { const m = s.members.find(x => x.mid === this.creds.mid); if (m) m.picks = this.pending; }
     this.state = s; this.dispatchEvent(new Event('state'));
   }
-  close(full = true) { if (this.es) { this.es.close(); this.es = null; } clearTimeout(this.rt); if (full && this._vis) { document.removeEventListener('visibilitychange', this._vis); removeEventListener('online', this._vis); this._vis = null; } }
+  close(full = true) {
+    if (this.es) { this.es.close(); this.es = null; } clearTimeout(this.rt);
+    if (full) { clearInterval(this.wd); this.wd = 0; if (this._vis) { document.removeEventListener('visibilitychange', this._vis); removeEventListener('online', this._vis); removeEventListener('offline', this._off); this._vis = null; } }
+  }
   async op(op, extra = {}) {
     const c = this.creds || {};
     const j = await req(`/rooms/${this.id}/op`, { op, mid: c.mid, key: c.key, hostKey: c.hostKey, ...extra });
