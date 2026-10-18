@@ -27,3 +27,8 @@ test('保存图片：三种反馈状态文案 + Lucide 图标', () => {
 test('保存图片：snapDOM 已本地 vendored（无构建步骤）', () => {
   assert.match(readFileSync(new URL('../web/vendor/snapdom.mjs', import.meta.url), 'utf8'), /snapdom/);
 });
+test('保存图片：底栏原有按钮接 snapDOM，不再另加按钮', () => {
+  const app = readFileSync(new URL('../web/app.js', import.meta.url), 'utf8');
+  assert.match(app, /bindSaveButton\(\$\('imgBtn'\)/);
+  assert.doesNotMatch(app, /mountSaveButton|saveRow/);
+});

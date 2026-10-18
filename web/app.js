@@ -6,7 +6,7 @@ import { I18N } from './i18n.js?v=20261016i';
 import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016i';
 import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016i';
 import qrcode from './vendor/qrcode.js';
-import { mountSaveButton } from './save-image.js?v=20261018a';
+import { bindSaveButton } from './save-image.js?v=20261018b';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -471,7 +471,7 @@ async function renderBill() {
   const banner = room?.state ? `<p class="lockbar ${room.state.locked ? '' : 'soft'}">${room.state.locked ? '🔒 ' + esc(t('billFinal')) : '⏳ ' + esc(t('billLive'))}</p>` : '';
   $('appbody').innerHTML = `${banner}
   <div class="tabs" style="padding-top:0"><div class="seg" id="themes">${['git', 'pr', 'receipt'].map(k => `<button data-th="${k}" aria-pressed="${k === cardTheme}">${esc(t({ git: 'thGit', pr: 'thPr', receipt: 'thReceipt' }[k]))}</button>`).join('')}</div></div>
-  <div class="cols"><div class="pv-col"><div class="card preview" style="padding:12px">${lastSVG}</div><div class="save-img-row" id="saveRow"></div></div>
+  <div class="cols"><div class="card preview" style="padding:12px">${lastSVG}</div>
   <div><div class="card">
     <div class="stats">
       <div class="stat"><span>${esc(t('sumPaid'))}</span><b>¥${Y(r.best.total)}</b></div>
@@ -493,14 +493,14 @@ async function renderBill() {
   $('appbar').innerHTML = `<button class="btn primary" id="imgBtn"><span>${esc(t('saveImg'))}</span></button><button class="btn" id="msgBtn"><span>${esc(t('copyMsg'))}</span></button><button class="btn" id="shareBtn" style="flex:0 0 auto"><span>${esc(t('share'))}</span></button>`;
   document.querySelector('.preview').onclick = () => zoomSVG(lastSVG);
   $('themes').onclick = e => { const b = e.target.closest('button'); if (!b) return; cardTheme = b.dataset.th; renderBill(); };
-  $('imgBtn').onclick = e => act(e.currentTarget, saveImage);
+  // 保存图片：改用 snapDOM 导出（web/save-image.js）。旧的 saveImage()/svgToPngBlob 暂留，验收后删除。
+  bindSaveButton($('imgBtn'), () => document.querySelector('.preview svg') || document.querySelector('.preview'), { lang: LANG, openImage: showOverlay, onBlob: b => { window.__lastReceiptPng = b; } });
   $('msgBtn').onclick = e => act(e.currentTarget, async () => { await copyText(lastMsg); return t('copied'); });
   $('shareBtn').onclick = e => act(e.currentTarget, shareIt);
   const applySign = (v, share = true) => { lastCtx.sign = v; lastSVG = renderSVG(lastCtx, cardTheme); document.querySelector('.preview').innerHTML = lastSVG; $('sgNow').textContent = v; if (share && room?.isHost) { clearTimeout(applySign.t); applySign.t = setTimeout(() => room.op('meta', { sign: v }).catch(e => toast(errMsg(e))), 400); } };
   $('sgShuffle').onclick = () => { signCustom = null; $('sgInput').value = ''; signSeed = (signSeed + 1 + Math.floor(Math.random() * 7)) >>> 0; const v = pickSign(signCtx(), LANG, signSeed); if (room?.isHost) signCustom = v; applySign(v); };
   $('sgInput').oninput = e => { const v = cleanSign(e.target.value); signCustom = v || null; applySign(v || (room?.state?.sign || pickSign(signCtx(), LANG, signSeed))); };
   document.querySelector('.sg-list').onclick = e => { const b = e.target.closest('[data-sg]'); if (!b) return; signCustom = b.dataset.sg; $('sgInput').value = ''; applySign(signCustom); b.closest('details').open = false; };
-  { const pv = document.querySelector('.preview'); mountSaveButton($('saveRow'), () => pv.querySelector('svg') || pv, { lang: LANG, onBlob: b => { window.__lastReceiptPng = b; } }); }
   $('svgBtn').onclick = async () => download('feast-receipt.svg', new Blob([await exportSVG()], { type: 'image/svg+xml' }));
 }
 function svgToPngBlob(svg) {
@@ -526,6 +526,7 @@ function showOverlay(blob) {
   $('ovClose').onclick = () => history.back();
   addEventListener('popstate', close, { once: true });
 }
+// TODO(验收后删除)：旧的 SVG→PNG 导出，已不再绑定到按钮。
 async function saveImage() {
   const blob = await svgToPngBlob(await exportSVG());
   if (isWeChat || /iPhone|iPad/.test(navigator.userAgent)) { showOverlay(blob); return t('imgReady'); }

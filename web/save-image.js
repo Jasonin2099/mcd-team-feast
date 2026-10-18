@@ -50,13 +50,13 @@ function deliver(blob, name, mode) {
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
-/** 在 target 节点后插入按钮；getNode 返回要导出的节点 */
-export function mountSaveButton(host, getNode, { lang = 'zh', onBlob } = {}) {
-  const btn = document.createElement('button');
-  btn.type = 'button'; btn.className = 'save-img'; btn.dataset.state = 'idle';
-  const set = s => { btn.dataset.state = s; btn.disabled = s === 'busy'; btn.innerHTML = `${DOWNLOAD_ICON}<span>${label(lang, s)}</span>`; };
+/** 把已有按钮接到 snapDOM 导出：只改按钮里文字（保持原样式），三种状态写在 data-state 上 */
+export function bindSaveButton(btn, getNode, { lang = 'zh', onBlob, openImage, idleText } = {}) {
+  const span = btn.querySelector('span') || btn;
+  const idle = idleText ?? span.textContent;
+  const set = s => { btn.dataset.state = s; btn.disabled = s === 'busy'; btn.setAttribute('aria-busy', s === 'busy'); span.textContent = s === 'idle' ? idle : label(lang, s); };
   set('idle');
-  btn.addEventListener('click', async () => {
+  btn.onclick = async () => {
     if (btn.dataset.state === 'busy') return;
     set('busy');
     try {
@@ -66,11 +66,12 @@ export function mountSaveButton(host, getNode, { lang = 'zh', onBlob } = {}) {
       const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
       const mobile = matchMedia('(pointer: coarse)').matches && innerWidth < 820;
       const mode = pickDelivery({ mobile, canShareFiles: !!(file && navigator.canShare?.({ files: [file] })) });
-      if (mode === 'share') { try { await navigator.share({ files: [file] }); } catch (e) { if (e.name !== 'AbortError') deliver(blob, name, 'open'); } }
-      else deliver(blob, name, mode);
+      const open = () => (openImage ? openImage(blob) : deliver(blob, name, 'open'));
+      if (mode === 'share') { try { await navigator.share({ files: [file] }); } catch (e) { if (e.name !== 'AbortError') open(); } }
+      else if (mode === 'open') open();
+      else deliver(blob, name, 'download');
       set('done'); setTimeout(() => btn.dataset.state === 'done' && set('idle'), 2400);
     } catch (e) { console.warn('[save-img]', e); set('fail'); }
-  });
-  host.appendChild(btn);
+  };
   return btn;
 }
