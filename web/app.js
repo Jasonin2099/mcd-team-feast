@@ -4,9 +4,10 @@ import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
 import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016i';
 import { I18N } from './i18n.js?v=20261016i';
 import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016i';
-import { Room, createRoom, SYNC_URL } from './sync.js?v=20261018v';
+import { Room, createRoom, SYNC_URL } from './sync.js?v=20261018x';
 import qrcode from './vendor/qrcode.js';
-import { ICONS as RC_IC, BTN_ICON, receiptHTML, exportReceipt, rcFilename } from './room-receipt.js?v=20261018v';
+import { clip } from './text.js?v=20261018x';
+import { ICONS as RC_IC, BTN_ICON, receiptHTML, exportReceipt, rcFilename } from './room-receipt.js?v=20261018x';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -55,8 +56,14 @@ async function compute(st) {
 }
 
 // ---------- 反馈 ----------
+// 被截断的名字：桌面靠 title 悬停；触屏长按 500ms 用 toast 显示全名
+{ let lp = 0, sx = 0, sy = 0;
+  const truncated = el => el.scrollWidth > el.clientWidth + 1;
+  addEventListener('touchstart', e => { const el = e.target.closest?.('.who[title], .nm[title]'); clearTimeout(lp); if (!el || !truncated(el)) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; lp = setTimeout(() => toast(el.title), 500); }, { passive: true });
+  addEventListener('touchmove', e => { if (Math.hypot(e.touches[0].clientX - sx, e.touches[0].clientY - sy) > 10) clearTimeout(lp); }, { passive: true });
+  addEventListener('touchend', () => clearTimeout(lp)); addEventListener('touchcancel', () => clearTimeout(lp)); }
 let toastTimer;
-function toast(msg) { const el = $('toast'); el.textContent = msg; el.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 2200); }
+function toast(msg, one = false) { const el = $('toast'); el.textContent = msg; el.classList.toggle('one', one); el.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 2200); }
 async function act(btn, fn) {
   if (btn.dataset.state === 'loading') return;
   const label = btn.innerHTML; btn.dataset.state = 'loading'; btn.disabled = true; btn.querySelector('span') ? (btn.querySelector('span').textContent = t('loading')) : (btn.textContent = t('loading'));
@@ -290,9 +297,9 @@ function renderList() {
   $('listCard').innerHTML = `<div class="card-h"><h3>${esc(t('listT'))}</h3><span class="muted small">${groups.size} ${esc(t('people'))} · ${n} ${esc(t('items'))}</span></div>` +
     (groups.size ? [...groups].map(([w, arr]) => {
       const sub = arr.reduce((s, x) => s + MOCK.menu.find(m => m.code === x.c).price * 100 * x.q, 0);
-      return `<div class="person"><div class="person-h"><span class="n">${esc(w)}</span><span>¥${Y(sub)}</span></div>` + arr.map(x => { const m = MOCK.menu.find(mm => mm.code === x.c);
+      return `<div class="person"><div class="person-h"><span class="n"><span class="who" title="${esc(w)}">${esc(w)}</span></span><span>¥${Y(sub)}</span></div>` + arr.map(x => { const m = MOCK.menu.find(mm => mm.code === x.c);
         const pd = SYNC_URL && w === me ? pendHTML(liveFailAt > 0 || (liveBusy && Date.now() - liveStart > 10000)) : '';
-        return `<div class="line"><span class="nm">${esc(m.name)}</span><span class="pr">¥${(m.price * x.q).toFixed(2)}</span>${pd}<span class="qty"><button data-i="${x.i}" data-d="-1" aria-label="-">−</button><span>${x.q}</span><button data-i="${x.i}" data-d="1" aria-label="+">+</button></span></div>`; }).join('') + '</div>';
+        return `<div class="line"><span class="nm" title="${esc(m.name)}">${esc(m.name)}</span><span class="pr">¥${(m.price * x.q).toFixed(2)}</span>${pd}<span class="qty"><button data-i="${x.i}" data-d="-1" aria-label="-">−</button><span>${x.q}</span><button data-i="${x.i}" data-d="1" aria-label="+">+</button></span></div>`; }).join('') + '</div>';
     }).join('') + `<p style="margin:10px 0 0;text-align:right"><button class="link" id="clearBtn">${esc(t('clear'))}</button></p>`
     : `<div class="empty"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><b>${esc(t('emptyT'))}</b><span class="bal">${esc(t('emptyD')).replace('&lt;wbr&gt;', '<wbr>')}</span><br><button class="link" id="sampleBtn" style="margin-top:10px">${esc(t('trySample'))}</button></div>`);
   $('listCard').onclick = e => {
@@ -321,7 +328,7 @@ function enterRoom(id) {
   room.addEventListener('state', () => {
     const ms = room.state.members, myMid = room.creds?.mid;
     const q = new Map(); ms.forEach(m => m.picks.forEach(([c, n]) => q.set(m.mid + ':' + c, n)));
-    if (prevMids) { const fresh = ms.filter(m => !prevMids.has(m.mid) && m.mid !== myMid); if (fresh.length) toast(fresh.map(m => fmt(t('memberJoined'), { who: m.name })).join(' · ')); }
+    if (prevMids) { const fresh = ms.filter(m => !prevMids.has(m.mid) && m.mid !== myMid); if (fresh.length) toast(fresh.map(m => fmt(t('memberJoined'), { who: clip(m.name, 10) })).join(' · '), true); }
     if (prevQ) flashKeys = new Set([...q].filter(([k, n]) => n > (prevQ.get(k) || 0) && !k.startsWith(myMid + ':')).map(([k]) => k));
     prevMids = new Set(ms.map(m => m.mid)); prevQ = q;
     state = roomToState(room.state); if (room.me) me = room.me._n;
@@ -449,8 +456,8 @@ function renderRoomList() {
   $('listCard').innerHTML = `<div class="card-h"><h3>${esc(t('listT'))}</h3>${rcBtnHTML(n > 0)}</div><p class="muted small rc-presence">${fmt(t('presence'), { on: online, all: people.length, done })}</p>
   <div class="sum"><div><span>${esc(t('sumOrig'))}</span><b>¥${Y(total)}</b></div><div><span>${esc(t('sumItems'))}</span><b>${n}</b></div><div><span>${esc(t('psDone'))}</span><b>${done}/${people.length}</b></div></div>` +
   people.map(m => { const [k, lab] = status(m); const sub = m.picks.reduce((x, [c, q]) => x + Math.round(priceOf(c) * 100) * q, 0);
-    return `<div class="person"><div class="person-h"><span class="n"><i class="dot ${m.online ? 'on' : ''}" title="${esc(t(m.online ? 'online' : 'offline'))}"></i>${esc(m._n || m.name)}${m.mid === s.host ? ` <small class="tag">${esc(t('hostTag'))}</small>` : ''}${m.mid === room.creds?.mid ? ` <small class="tag me">${esc(t('meTag'))}</small>` : ''}</span><span class="ps ${k}">${esc(lab)}</span><span class="sub">¥${Y(sub)}</span></div>` +
-      m.picks.map(([c, q]) => `<div class="line${flashKeys.has(m.mid + ':' + c) ? ' flash' : ''}"><span class="nm">${esc(nameOf(c))}</span><span class="pr">¥${(priceOf(c) * q).toFixed(2)}</span>${isMe(m) && (m.mid === '__joining' || room.isPending(c)) ? pendHTML(uns) : ''}${mine(m) ? `<span class="qty"><button data-c="${c}" data-d="-1" aria-label="-">−</button><span>${q}</span><button data-c="${c}" data-d="1" aria-label="+">+</button></span>` : `<span class="qn">×${q}</span>`}</div>`).join('') + '</div>'; }).join('') +
+    return `<div class="person"><div class="person-h"><span class="n"><i class="dot ${m.online ? 'on' : ''}" title="${esc(t(m.online ? 'online' : 'offline'))}"></i><span class="who" title="${esc(m._n || m.name)}">${esc(m._n || m.name)}</span>${m.mid === s.host ? ` <small class="tag">${esc(t('hostTag'))}</small>` : ''}${m.mid === room.creds?.mid ? ` <small class="tag me">${esc(t('meTag'))}</small>` : ''}</span><span class="ps ${k}">${esc(lab)}</span><span class="sub">¥${Y(sub)}</span></div>` +
+      m.picks.map(([c, q]) => `<div class="line${flashKeys.has(m.mid + ':' + c) ? ' flash' : ''}"><span class="nm" title="${esc(nameOf(c))}">${esc(nameOf(c))}</span><span class="pr">¥${(priceOf(c) * q).toFixed(2)}</span>${isMe(m) && (m.mid === '__joining' || room.isPending(c)) ? pendHTML(uns) : ''}${mine(m) ? `<span class="qty"><button data-c="${c}" data-d="-1" aria-label="-">−</button><span>${q}</span><button data-c="${c}" data-d="1" aria-label="+">+</button></span>` : `<span class="qn">×${q}</span>`}</div>`).join('') + '</div>'; }).join('') +
   (agg.size ? `<details class="agg"><summary>${esc(t('aggT'))}</summary><div>${[...agg].map(([c, q]) => `<div class="line"><span class="nm">${esc(nameOf(c))}</span><span class="qn">×${q}</span></div>`).join('')}</div></details>` : '');
   flashKeys = new Set();
   $('rcBtn').onclick = saveRoomReceipt;

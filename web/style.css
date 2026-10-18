@@ -91,7 +91,8 @@ input[type=text]:focus{border-color:var(--accent)}
 .item .q{position:absolute;top:-7px;right:-7px;background:var(--accent);color:var(--on-accent);border-radius:999px;font-size:12px;font-weight:700;min-width:22px;height:22px;display:grid;place-items:center;padding:0 6px}
 .person{border-top:1px solid var(--line);padding:12px 0}.person:first-child{border-top:0;padding-top:0}
 .person-h{display:flex;justify-content:space-between;gap:12px;font-weight:700}
-.person-h .n{overflow-wrap:anywhere;min-width:0}
+.person-h .n{display:flex;align-items:center;gap:6px;min-width:0}.person-h .n>*{flex:none}.person-h .n>.who{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.person-h .dot{margin-right:0}.person-h .ps,.person-h .sub{flex:none}
+.who[title],.nm[title]{-webkit-touch-callout:none}
 .line{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:14px;min-height:44px}
 .line .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.line .pr{color:var(--fg2);white-space:nowrap}
 .qty{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px}
@@ -254,3 +255,4 @@ details.sg-pick{box-shadow:none;background:var(--bg2);margin:10px 0 0;padding:0 
 .pend-retry::before{content:"";position:absolute;inset:-9px -4px}  /* 扩大点击区域到 ≥44px 高 */
 .pend-retry:active{transform:scale(.96)}
 @media (prefers-reduced-motion:reduce){.pend svg{animation:none}.pend-retry:active{transform:none}}
+.toast.one{white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
