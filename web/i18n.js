@@ -1,6 +1,7 @@
 // 网页文案（中/英/日）。保持短句。
 export const I18N = {
   zh: {
+    retry: '重试',
     pendRetry: '未同步，点此重试', pendSending: '同步中',
     memberJoined: '{who} 加入了',
     st_offline: '本地模式',
@@ -118,6 +119,7 @@ export const I18N = {
     theme: '外观', thAuto: '跟随系统', thLight: '浅色', thDark: '深色', thGold: '紫金', star: 'Star',
   },
   en: {
+    retry: 'Retry',
     pendRetry: 'Not synced, tap to retry', pendSending: 'Syncing',
     memberJoined: '{who} joined',
     st_offline: 'Local only',
@@ -235,6 +237,7 @@ export const I18N = {
     theme: 'Appearance', thAuto: 'System', thLight: 'Light', thDark: 'Dark', thGold: 'Purple & gold', star: 'Star',
   },
   ja: {
+    retry: '再試行',
     pendRetry: '未同期・タップで再試行', pendSending: '同期中',
     memberJoined: '{who} さんが参加しました',
     st_offline: 'ローカルのみ',

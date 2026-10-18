@@ -56,3 +56,14 @@ test('建房期间点的菜：用最新完整点单补发（app.js 逻辑）', a
   const app = readFileSync(new URL('../web/app.js', import.meta.url), 'utf8');
   assert.match(app, /const latest = state\.p\.filter[\s\S]*room\.setPicks\(latest\)/);
 });
+
+test('状态位在价格与数量之间，不在菜名里；重试是带图标的胶囊', async () => {
+  const { readFileSync } = await import('node:fs');
+  const app = readFileSync(new URL('../web/app.js', import.meta.url), 'utf8');
+  assert.match(app, /<span class="pr">[^\n]*<\/span>\$\{isMe\(m\)[^\n]*pendHTML\(uns\)[^\n]*\$\{mine\(m\) \?/);
+  assert.doesNotMatch(app, /<span class="nm">[^<]*\$\{[^}]*pendHTML/);
+  assert.match(app, /class="pend-retry"[^`]*\$\{RETRY_IC\}<span>\$\{esc\(t\('retry'\)\)\}/);
+  const css = readFileSync(new URL('../web/style.css', import.meta.url), 'utf8');
+  assert.match(css, /\.line \.nm\{[^}]*text-overflow:ellipsis;white-space:nowrap/);
+  assert.match(css, /prefers-reduced-motion:reduce\)\{\.pend svg\{animation:none/);
+});

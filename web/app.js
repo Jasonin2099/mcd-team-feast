@@ -4,9 +4,9 @@ import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
 import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016i';
 import { I18N } from './i18n.js?v=20261016i';
 import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016i';
-import { Room, createRoom, SYNC_URL } from './sync.js?v=20261018u';
+import { Room, createRoom, SYNC_URL } from './sync.js?v=20261018v';
 import qrcode from './vendor/qrcode.js';
-import { ICONS as RC_IC, BTN_ICON, receiptHTML, exportReceipt, rcFilename } from './room-receipt.js?v=20261018u';
+import { ICONS as RC_IC, BTN_ICON, receiptHTML, exportReceipt, rcFilename } from './room-receipt.js?v=20261018v';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -292,7 +292,7 @@ function renderList() {
       const sub = arr.reduce((s, x) => s + MOCK.menu.find(m => m.code === x.c).price * 100 * x.q, 0);
       return `<div class="person"><div class="person-h"><span class="n">${esc(w)}</span><span>¥${Y(sub)}</span></div>` + arr.map(x => { const m = MOCK.menu.find(mm => mm.code === x.c);
         const pd = SYNC_URL && w === me ? pendHTML(liveFailAt > 0 || (liveBusy && Date.now() - liveStart > 10000)) : '';
-        return `<div class="line"><span class="nm">${esc(m.name)}${pd}</span><span class="pr">¥${(m.price * x.q).toFixed(2)}</span><span class="qty"><button data-i="${x.i}" data-d="-1" aria-label="-">−</button><span>${x.q}</span><button data-i="${x.i}" data-d="1" aria-label="+">+</button></span></div>`; }).join('') + '</div>';
+        return `<div class="line"><span class="nm">${esc(m.name)}</span><span class="pr">¥${(m.price * x.q).toFixed(2)}</span>${pd}<span class="qty"><button data-i="${x.i}" data-d="-1" aria-label="-">−</button><span>${x.q}</span><button data-i="${x.i}" data-d="1" aria-label="+">+</button></span></div>`; }).join('') + '</div>';
     }).join('') + `<p style="margin:10px 0 0;text-align:right"><button class="link" id="clearBtn">${esc(t('clear'))}</button></p>`
     : `<div class="empty"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><b>${esc(t('emptyT'))}</b><span class="bal">${esc(t('emptyD')).replace('&lt;wbr&gt;', '<wbr>')}</span><br><button class="link" id="sampleBtn" style="margin-top:10px">${esc(t('trySample'))}</button></div>`);
   $('listCard').onclick = e => {
@@ -338,7 +338,10 @@ function chipHTML() {
 }
 // 待发送点单的小标记：灰色旋转 loader；超时/失败 → 橙色「未同步，点此重试」
 const LOADER_IC = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>';
-const pendHTML = (unsynced) => unsynced ? `<button type="button" class="pend-retry" data-retry="1">${esc(t('pendRetry'))}</button>` : `<span class="pend" role="img" aria-label="${esc(t('pendSending'))}">${LOADER_IC}</span>`;
+const RETRY_IC = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>';
+const pendHTML = (unsynced) => unsynced
+  ? `<button type="button" class="pend-retry" data-retry="1" aria-label="${esc(t('pendRetry'))}">${RETRY_IC}<span>${esc(t('retry'))}</span></button>`
+  : `<span class="pend" role="img" aria-label="${esc(t('pendSending'))}">${LOADER_IC}</span>`;
 let pendTimer = 0;
 function schedulePendCheck(since) { clearTimeout(pendTimer); if (since) pendTimer = setTimeout(() => renderList(), Math.max(0, since + 10000 - Date.now()) + 50); }
 let liveStart = 0;
@@ -447,12 +450,12 @@ function renderRoomList() {
   <div class="sum"><div><span>${esc(t('sumOrig'))}</span><b>¥${Y(total)}</b></div><div><span>${esc(t('sumItems'))}</span><b>${n}</b></div><div><span>${esc(t('psDone'))}</span><b>${done}/${people.length}</b></div></div>` +
   people.map(m => { const [k, lab] = status(m); const sub = m.picks.reduce((x, [c, q]) => x + Math.round(priceOf(c) * 100) * q, 0);
     return `<div class="person"><div class="person-h"><span class="n"><i class="dot ${m.online ? 'on' : ''}" title="${esc(t(m.online ? 'online' : 'offline'))}"></i>${esc(m._n || m.name)}${m.mid === s.host ? ` <small class="tag">${esc(t('hostTag'))}</small>` : ''}${m.mid === room.creds?.mid ? ` <small class="tag me">${esc(t('meTag'))}</small>` : ''}</span><span class="ps ${k}">${esc(lab)}</span><span class="sub">¥${Y(sub)}</span></div>` +
-      m.picks.map(([c, q]) => `<div class="line${flashKeys.has(m.mid + ':' + c) ? ' flash' : ''}"><span class="nm">${esc(nameOf(c))}${isMe(m) && (m.mid === '__joining' || room.isPending(c)) ? pendHTML(uns) : ''}</span><span class="pr">¥${(priceOf(c) * q).toFixed(2)}</span>${mine(m) ? `<span class="qty"><button data-c="${c}" data-d="-1" aria-label="-">−</button><span>${q}</span><button data-c="${c}" data-d="1" aria-label="+">+</button></span>` : `<span class="qn">×${q}</span>`}</div>`).join('') + '</div>'; }).join('') +
+      m.picks.map(([c, q]) => `<div class="line${flashKeys.has(m.mid + ':' + c) ? ' flash' : ''}"><span class="nm">${esc(nameOf(c))}</span><span class="pr">¥${(priceOf(c) * q).toFixed(2)}</span>${isMe(m) && (m.mid === '__joining' || room.isPending(c)) ? pendHTML(uns) : ''}${mine(m) ? `<span class="qty"><button data-c="${c}" data-d="-1" aria-label="-">−</button><span>${q}</span><button data-c="${c}" data-d="1" aria-label="+">+</button></span>` : `<span class="qn">×${q}</span>`}</div>`).join('') + '</div>'; }).join('') +
   (agg.size ? `<details class="agg"><summary>${esc(t('aggT'))}</summary><div>${[...agg].map(([c, q]) => `<div class="line"><span class="nm">${esc(nameOf(c))}</span><span class="qn">×${q}</span></div>`).join('')}</div></details>` : '');
   flashKeys = new Set();
   $('rcBtn').onclick = saveRoomReceipt;
   $('listCard').onclick = e => {
-    if (e.target.closest('[data-retry]')) { room.flush().catch(err => toast(errMsg(err))); return; }
+    if (e.target.closest('[data-retry]')) { room.pendingSince = Date.now(); const p = room.flush(); renderRoomList(); p.catch(err => toast(errMsg(err))); return; }
     const b = e.target.closest('button[data-c]'); if (b && (room.me || room.joining)) roomAdd(b.dataset.c, +b.dataset.d);
   };
 }

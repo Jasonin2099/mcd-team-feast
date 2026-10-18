@@ -92,8 +92,8 @@ input[type=text]:focus{border-color:var(--accent)}
 .person{border-top:1px solid var(--line);padding:12px 0}.person:first-child{border-top:0;padding-top:0}
 .person-h{display:flex;justify-content:space-between;gap:12px;font-weight:700}
 .person-h .n{overflow-wrap:anywhere;min-width:0}
-.line{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:14px}
-.line .nm{flex:1;min-width:0;overflow-wrap:anywhere}.line .pr{color:var(--fg2);white-space:nowrap}
+.line{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:14px;min-height:44px}
+.line .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.line .pr{color:var(--fg2);white-space:nowrap}
 .qty{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px}
 .qty button{border:0;background:transparent;width:30px;height:30px;cursor:pointer;font-size:16px}.qty span{min-width:18px;text-align:center;font-size:14px}
 .empty{text-align:center;padding:24px 12px;color:var(--fg2);font-size:13.5px}.empty svg{display:block;margin:0 auto 8px;color:var(--fg2);opacity:.7}.empty b{display:block;color:var(--fg);font-size:15px;font-weight:650;margin-bottom:4px}
@@ -247,8 +247,10 @@ details.sg-pick{box-shadow:none;background:var(--bg2);margin:10px 0 0;padding:0 
 @keyframes rowflash{from{background:rgba(255,199,44,.45)}to{background:transparent}}
 .line.flash{animation:rowflash 1s ease-out;border-radius:8px}
 @media (prefers-reduced-motion:reduce){.line.flash{animation:none;background:rgba(255,199,44,.25)}}
-/* 待发送的点单：灰色旋转 loader；超时/失败显示橙色重试 */
-.pend{display:inline-flex;vertical-align:-2px;margin-left:6px;color:var(--fg2);opacity:.8}
+/* 待发送的点单：价格与数量之间的状态位。发送中=灰色 loader；失败/超时=橙色「重试」胶囊 */
+.pend{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex:none;color:var(--fg2)}
 .pend svg{animation:spin 1s linear infinite}
-.pend-retry{margin-left:8px;padding:0;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:#b35c00;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
-@media (prefers-reduced-motion:reduce){.pend svg{animation:none}}
+.pend-retry{position:relative;display:inline-flex;align-items:center;gap:4px;flex:none;height:26px;padding:0 10px 0 8px;border:0;border-radius:999px;background:rgba(214,120,0,.14);color:#b35c00;font:inherit;font-size:12.5px;font-weight:600;line-height:1;cursor:pointer;white-space:nowrap}
+.pend-retry::before{content:"";position:absolute;inset:-9px -4px}  /* 扩大点击区域到 ≥44px 高 */
+.pend-retry:active{transform:scale(.96)}
+@media (prefers-reduced-motion:reduce){.pend svg{animation:none}.pend-retry:active{transform:none}}
