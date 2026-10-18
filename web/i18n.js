@@ -1,6 +1,7 @@
 // 网页文案（中/英/日）。保持短句。
 export const I18N = {
   zh: {
+    rcSave: '保存小票图片', rcBusy: '生成中…', rcOk: '已保存', rcFail: '失败，重试', rcTitle: '麦麦拼单 · 拼单小票', rcAgg: '按菜品汇总', rcTotal: '合计', rcMore: '…另 {n} 项', rcMoreKinds: '…另 {n} 种', rcMembers: '成员 {n} 人', rcPcs: '件', rcNote: '不含价格，以门店实付为准', brand: '麦麦拼单',
     sgT: "梗签名",
     sgShuffle: "换一句",
     sgPick: "从列表里选",
@@ -118,6 +119,7 @@ export const I18N = {
     theme: '外观', thAuto: '跟随系统', thLight: '浅色', thDark: '深色', thGold: '紫金', star: 'Star',
   },
   en: {
+    rcSave: 'Save receipt image', rcBusy: 'Generating…', rcOk: 'Saved', rcFail: 'Failed, retry', rcTitle: 'mcd-team-feast · Group receipt', rcAgg: 'By item', rcTotal: 'Total', rcMore: '…{n} more', rcMoreKinds: '…{n} more items', rcMembers: '{n} members', rcPcs: ' pcs', rcNote: 'No prices. Pay what the store charges.', brand: 'mcd-team-feast',
     sgT: "Signature line",
     sgShuffle: "Shuffle",
     sgPick: "Pick from list",
@@ -235,6 +237,7 @@ export const I18N = {
     theme: 'Appearance', thAuto: 'System', thLight: 'Light', thDark: 'Dark', thGold: 'Purple & gold', star: 'Star',
   },
   ja: {
+    rcSave: 'レシート画像を保存', rcBusy: '生成中…', rcOk: '保存しました', rcFail: '失敗、再試行', rcTitle: '麦麦拼单 · まとめレシート', rcAgg: '商品別まとめ', rcTotal: '合計', rcMore: '…ほか {n} 品', rcMoreKinds: '…ほか {n} 種類', rcMembers: 'メンバー {n} 人', rcPcs: '点', rcNote: '価格は含みません。店頭の会計が正です。', brand: '麦麦拼单',
     sgT: "ひとことネタ",
     sgShuffle: "シャッフル",
     sgPick: "リストから選ぶ",

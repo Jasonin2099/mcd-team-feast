@@ -6,7 +6,7 @@ import { I18N } from './i18n.js?v=20261016i';
 import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016i';
 import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016i';
 import qrcode from './vendor/qrcode.js';
-import { bindSaveButton } from './save-image.js?v=20261018b';
+import { ICONS as RC_IC, BTN_ICON, receiptHTML, exportReceipt, rcFilename } from './room-receipt.js?v=20261018s';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -415,13 +415,42 @@ function renderRoomList() {
   const agg = new Map(); people.forEach(m => m.picks.forEach(([c, q]) => agg.set(c, (agg.get(c) || 0) + q)));
   const status = m => !m.picks.length ? ['none', t('psNone')] : m.done ? ['done', t('psDone')] : ['busy', t('psBusy')];
   const mine = m => m.mid === room.creds?.mid && !s.locked;
-  $('listCard').innerHTML = `<div class="card-h"><h3>${esc(t('listT'))}</h3><span class="muted small">${fmt(t('presence'), { on: online, all: people.length, done })}</span></div>
+  $('listCard').innerHTML = `<div class="card-h"><h3>${esc(t('listT'))}</h3>${rcBtnHTML(n > 0)}</div><p class="muted small rc-presence">${fmt(t('presence'), { on: online, all: people.length, done })}</p>
   <div class="sum"><div><span>${esc(t('sumOrig'))}</span><b>¥${Y(total)}</b></div><div><span>${esc(t('sumItems'))}</span><b>${n}</b></div><div><span>${esc(t('psDone'))}</span><b>${done}/${people.length}</b></div></div>` +
   people.map(m => { const [k, lab] = status(m); const sub = m.picks.reduce((x, [c, q]) => x + Math.round(priceOf(c) * 100) * q, 0);
     return `<div class="person"><div class="person-h"><span class="n"><i class="dot ${m.online ? 'on' : ''}" title="${esc(t(m.online ? 'online' : 'offline'))}"></i>${esc(m._n || m.name)}${m.mid === s.host ? ` <small class="tag">${esc(t('hostTag'))}</small>` : ''}${m.mid === room.creds?.mid ? ` <small class="tag me">${esc(t('meTag'))}</small>` : ''}</span><span class="ps ${k}">${esc(lab)}</span><span class="sub">¥${Y(sub)}</span></div>` +
       m.picks.map(([c, q]) => `<div class="line"><span class="nm">${esc(nameOf(c))}</span><span class="pr">¥${(priceOf(c) * q).toFixed(2)}</span>${mine(m) ? `<span class="qty"><button data-c="${c}" data-d="-1" aria-label="-">−</button><span>${q}</span><button data-c="${c}" data-d="1" aria-label="+">+</button></span>` : `<span class="qn">×${q}</span>`}</div>`).join('') + '</div>'; }).join('') +
   (agg.size ? `<details class="agg"><summary>${esc(t('aggT'))}</summary><div>${[...agg].map(([c, q]) => `<div class="line"><span class="nm">${esc(nameOf(c))}</span><span class="qn">×${q}</span></div>`).join('')}</div></details>` : '');
+  $('rcBtn').onclick = saveRoomReceipt;
   $('listCard').onclick = e => { const b = e.target.closest('button[data-c]'); if (b && room.me) roomAdd(b.dataset.c, +b.dataset.d); };
+}
+// ---------- 房间页：拼单小票（不含价格）----------
+let rcState = 'idle', rcTimer = 0;
+const RC_TXT = { idle: 'rcSave', loading: 'rcBusy', ok: 'rcOk', fail: 'rcFail' };
+function rcBtnHTML(enabled) {
+  return `<button class="btn sm rc-btn" id="rcBtn" type="button" ${rcState === 'idle' ? '' : `data-state="${rcState}"`} ${!enabled || rcState === 'loading' ? 'disabled' : ''} aria-busy="${rcState === 'loading'}"><span class="ic">${RC_IC[BTN_ICON[rcState]]}</span><span>${esc(t(RC_TXT[rcState]))}</span></button>`;
+}
+function setRc(st) {
+  rcState = st; clearTimeout(rcTimer);
+  const b = $('rcBtn'); if (b) { const has = room?.state?.members.some(m => m.picks.length); b.outerHTML = rcBtnHTML(has); $('rcBtn').onclick = saveRoomReceipt; }
+  if (st === 'ok') rcTimer = setTimeout(() => setRc('idle'), 2000);
+}
+async function saveRoomReceipt() {
+  if (rcState === 'loading' || !room?.state) return;
+  const s = room.state; if (!s.members.some(m => m.picks.length)) return;
+  setRc('loading');
+  try {
+    const blob = await exportReceipt(receiptHTML(s, { nameOf, t, fmt }));
+    window.__lastRoomPng = blob;
+    const file = new File([blob], rcFilename(room.id), { type: 'image/png' });
+    if (isWeChat) { showOverlay(blob); setRc('ok'); return; }
+    if (narrow && navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: '麦麦拼单 · ' + (s.t || '') }); setRc('ok'); return; }
+      catch (e) { if (e.name === 'AbortError') { setRc('idle'); return; } }
+    }
+    if (/iPhone|iPad/.test(navigator.userAgent)) { showOverlay(blob); setRc('ok'); return; }
+    download(file.name, blob); setRc('ok');
+  } catch (e) { console.warn('[feast] receipt export failed', e); setRc('fail'); toast(t('rcFail')); }
 }
 function renderRoomBar() {
   const s = room.state, host = room.isHost, me_ = room.me; let h = '';
@@ -493,8 +522,7 @@ async function renderBill() {
   $('appbar').innerHTML = `<button class="btn primary" id="imgBtn"><span>${esc(t('saveImg'))}</span></button><button class="btn" id="msgBtn"><span>${esc(t('copyMsg'))}</span></button><button class="btn" id="shareBtn" style="flex:0 0 auto"><span>${esc(t('share'))}</span></button>`;
   document.querySelector('.preview').onclick = () => zoomSVG(lastSVG);
   $('themes').onclick = e => { const b = e.target.closest('button'); if (!b) return; cardTheme = b.dataset.th; renderBill(); };
-  // 保存图片：改用 snapDOM 导出（web/save-image.js）。旧的 saveImage()/svgToPngBlob 暂留，验收后删除。
-  bindSaveButton($('imgBtn'), () => document.querySelector('.preview svg') || document.querySelector('.preview'), { lang: LANG, openImage: showOverlay, onBlob: b => { window.__lastReceiptPng = b; } });
+  $('imgBtn').onclick = e => act(e.currentTarget, saveImage);
   $('msgBtn').onclick = e => act(e.currentTarget, async () => { await copyText(lastMsg); return t('copied'); });
   $('shareBtn').onclick = e => act(e.currentTarget, shareIt);
   const applySign = (v, share = true) => { lastCtx.sign = v; lastSVG = renderSVG(lastCtx, cardTheme); document.querySelector('.preview').innerHTML = lastSVG; $('sgNow').textContent = v; if (share && room?.isHost) { clearTimeout(applySign.t); applySign.t = setTimeout(() => room.op('meta', { sign: v }).catch(e => toast(errMsg(e))), 400); } };
@@ -526,7 +554,6 @@ function showOverlay(blob) {
   $('ovClose').onclick = () => history.back();
   addEventListener('popstate', close, { once: true });
 }
-// TODO(验收后删除)：旧的 SVG→PNG 导出，已不再绑定到按钮。
 async function saveImage() {
   const blob = await svgToPngBlob(await exportSVG());
   if (isWeChat || /iPhone|iPad/.test(navigator.userAgent)) { showOverlay(blob); return t('imgReady'); }
