@@ -6,6 +6,7 @@ import { I18N } from './i18n.js?v=20261016i';
 import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016i';
 import { Room, createRoom, SYNC_URL } from './sync.js?v=20261016i';
 import qrcode from './vendor/qrcode.js';
+import { mountSaveButton } from './save-image.js?v=20261018a';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -470,7 +471,7 @@ async function renderBill() {
   const banner = room?.state ? `<p class="lockbar ${room.state.locked ? '' : 'soft'}">${room.state.locked ? '🔒 ' + esc(t('billFinal')) : '⏳ ' + esc(t('billLive'))}</p>` : '';
   $('appbody').innerHTML = `${banner}
   <div class="tabs" style="padding-top:0"><div class="seg" id="themes">${['git', 'pr', 'receipt'].map(k => `<button data-th="${k}" aria-pressed="${k === cardTheme}">${esc(t({ git: 'thGit', pr: 'thPr', receipt: 'thReceipt' }[k]))}</button>`).join('')}</div></div>
-  <div class="cols"><div class="card preview" style="padding:12px">${lastSVG}</div>
+  <div class="cols"><div class="pv-col"><div class="card preview" style="padding:12px">${lastSVG}</div><div class="save-img-row" id="saveRow"></div></div>
   <div><div class="card">
     <div class="stats">
       <div class="stat"><span>${esc(t('sumPaid'))}</span><b>¥${Y(r.best.total)}</b></div>
@@ -499,6 +500,7 @@ async function renderBill() {
   $('sgShuffle').onclick = () => { signCustom = null; $('sgInput').value = ''; signSeed = (signSeed + 1 + Math.floor(Math.random() * 7)) >>> 0; const v = pickSign(signCtx(), LANG, signSeed); if (room?.isHost) signCustom = v; applySign(v); };
   $('sgInput').oninput = e => { const v = cleanSign(e.target.value); signCustom = v || null; applySign(v || (room?.state?.sign || pickSign(signCtx(), LANG, signSeed))); };
   document.querySelector('.sg-list').onclick = e => { const b = e.target.closest('[data-sg]'); if (!b) return; signCustom = b.dataset.sg; $('sgInput').value = ''; applySign(signCustom); b.closest('details').open = false; };
+  { const pv = document.querySelector('.preview'); mountSaveButton($('saveRow'), () => pv.querySelector('svg') || pv, { lang: LANG, onBlob: b => { window.__lastReceiptPng = b; } }); }
   $('svgBtn').onclick = async () => download('feast-receipt.svg', new Blob([await exportSVG()], { type: 'image/svg+xml' }));
 }
 function svgToPngBlob(svg) {
