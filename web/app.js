@@ -4,9 +4,9 @@ import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
 import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016i';
 import { I18N } from './i18n.js?v=20261016i';
 import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016i';
-import { Room, createRoom, SYNC_URL } from './sync.js?v=20261018t';
+import { Room, createRoom, SYNC_URL } from './sync.js?v=20261018u';
 import qrcode from './vendor/qrcode.js';
-import { ICONS as RC_IC, BTN_ICON, receiptHTML, exportReceipt, rcFilename } from './room-receipt.js?v=20261018t';
+import { ICONS as RC_IC, BTN_ICON, receiptHTML, exportReceipt, rcFilename } from './room-receipt.js?v=20261018u';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -291,11 +291,13 @@ function renderList() {
     (groups.size ? [...groups].map(([w, arr]) => {
       const sub = arr.reduce((s, x) => s + MOCK.menu.find(m => m.code === x.c).price * 100 * x.q, 0);
       return `<div class="person"><div class="person-h"><span class="n">${esc(w)}</span><span>¥${Y(sub)}</span></div>` + arr.map(x => { const m = MOCK.menu.find(mm => mm.code === x.c);
-        return `<div class="line"><span class="nm">${esc(m.name)}</span><span class="pr">¥${(m.price * x.q).toFixed(2)}</span><span class="qty"><button data-i="${x.i}" data-d="-1" aria-label="-">−</button><span>${x.q}</span><button data-i="${x.i}" data-d="1" aria-label="+">+</button></span></div>`; }).join('') + '</div>';
+        const pd = SYNC_URL && w === me ? pendHTML(liveFailAt > 0 || (liveBusy && Date.now() - liveStart > 10000)) : '';
+        return `<div class="line"><span class="nm">${esc(m.name)}${pd}</span><span class="pr">¥${(m.price * x.q).toFixed(2)}</span><span class="qty"><button data-i="${x.i}" data-d="-1" aria-label="-">−</button><span>${x.q}</span><button data-i="${x.i}" data-d="1" aria-label="+">+</button></span></div>`; }).join('') + '</div>';
     }).join('') + `<p style="margin:10px 0 0;text-align:right"><button class="link" id="clearBtn">${esc(t('clear'))}</button></p>`
     : `<div class="empty"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><b>${esc(t('emptyT'))}</b><span class="bal">${esc(t('emptyD')).replace('&lt;wbr&gt;', '<wbr>')}</span><br><button class="link" id="sampleBtn" style="margin-top:10px">${esc(t('trySample'))}</button></div>`);
   $('listCard').onclick = e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.retry) { autoLive(true); return; }
     if (b.id === 'sampleBtn') { state.p = SAMPLE.map(x => [...x]); if (!state.o) state.o = '老王(后端)'; saveHash(); renderOrder(); return; }
     if (b.id === 'clearBtn') { if (confirm(t('confirmClear'))) { state.p = []; saveHash(); renderOrder(); } return; }
     if (b.dataset.i != null) { const i = +b.dataset.i; state.p[i][2] += +b.dataset.d; if (state.p[i][2] <= 0) state.p.splice(i, 1); saveHash(); renderOrder(); }
@@ -334,12 +336,18 @@ function chipHTML() {
   const st = room.status; const cls = { live: 'live', gone: 'bad', reconnecting: 'warn' }[st] || 'conn';
   return `<span class="chip ${cls}" id="modeChip" role="status">${st === 'live' ? '● ' : ''}${esc(t('st_' + st))}</span>`;
 }
+// 待发送点单的小标记：灰色旋转 loader；超时/失败 → 橙色「未同步，点此重试」
+const LOADER_IC = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>';
+const pendHTML = (unsynced) => unsynced ? `<button type="button" class="pend-retry" data-retry="1">${esc(t('pendRetry'))}</button>` : `<span class="pend" role="img" aria-label="${esc(t('pendSending'))}">${LOADER_IC}</span>`;
+let pendTimer = 0;
+function schedulePendCheck(since) { clearTimeout(pendTimer); if (since) pendTimer = setTimeout(() => renderList(), Math.max(0, since + 10000 - Date.now()) + 50); }
+let liveStart = 0;
 // 实时同步默认开启：有昵称就自动建房间，失败则保留本地并在下次操作时重试
 let liveBusy = false, liveFailAt = 0;
-async function autoLive() {
-  if (room || liveBusy || !SYNC_URL || !(me || '').trim() || Date.now() - liveFailAt < 5000) return;
-  liveBusy = true;
-  try { await goLive(); } catch (e) { liveFailAt = Date.now(); const c = $('modeChip'); if (c) { c.className = 'chip warn'; c.textContent = t('st_reconnecting'); } console.warn('[feast] auto live failed', e); toast(e.message); }
+async function autoLive(force = false) {
+  if (room || liveBusy || !SYNC_URL || !(me || '').trim() || (!force && Date.now() - liveFailAt < 5000)) return;
+  liveBusy = true; liveFailAt = 0; liveStart = Date.now(); if ($('listCard')) renderList(); schedulePendCheck(liveStart);
+  try { await goLive(); } catch (e) { liveFailAt = Date.now(); const c = $('modeChip'); if (c) { c.className = 'chip warn'; c.textContent = t('st_reconnecting'); } console.warn('[feast] auto live failed', e); toast(e.message); if ($('listCard')) renderList(); }
   finally { liveBusy = false; }
 }
 async function goLive() {
@@ -349,7 +357,11 @@ async function goLive() {
   let j, err;
   for (let i = 0; i < 3 && !j; i++) { try { j = await createRoom({ t: state.t, name, picks: mine }); } catch (e) { err = e; console.warn('[feast] create room failed', SYNC_URL, e); if (e.status && e.status < 500 && e.status !== 429) break; await new Promise(r => setTimeout(r, 800 * (i + 1))); } }
   if (!j) throw new Error(err?.status ? `${t('syncDown')} (HTTP ${err.status})` : fmt(t('netHint'), { host: SYNC_URL ? new URL(SYNC_URL).host : '—' }));
-  enterRoom(j.id); room.apply(j.state); saveHash(); renderApp();
+  // 建房期间又点/改的菜：用最新的完整点单补发（整体替换，不重复、不丢数量）
+  const latest = state.p.filter(x => x[0] === name).map(x => [x[1], x[2]]);
+  enterRoom(j.id); room.apply(j.state);
+  if (JSON.stringify(latest) !== JSON.stringify(mine)) room.setPicks(latest).catch(e => toast(errMsg(e)));
+  saveHash(); renderApp();
   return '';
 }
 const priceOf = c => MOCK.menu.find(m => m.code === c)?.price || 0;
@@ -401,12 +413,12 @@ function renderRoomOrder() {
   document.querySelectorAll('[data-dl]').forEach(b => b.onclick = async () => { const m = +b.dataset.dl; const d = room.state.deadline; b.disabled = true; try { await room.op('deadline', { at: m ? (d && d > Date.now() ? d : Date.now()) + m * 60e3 : null }); } catch (err) { toast(errMsg(err)); } finally { b.disabled = false; } });
   $('menu').onclick = e => {
     const el = e.target.closest('.item'); if (!el || room.state.locked) return;
-    if (!room.me) { toast(t('joinFirst')); $('fMe').focus(); return; }
+    if (!room.me && !room.joining) { toast(t('joinFirst')); $('fMe').focus(); return; }
     roomAdd(el.dataset.c, 1);
   };
 }
 function roomAdd(code, d) {
-  const map = new Map(room.me.picks); const n = (map.get(code) || 0) + d;
+  const map = new Map(room.pending || room.me?.picks || []); const n = (map.get(code) || 0) + d;
   if (n > 0) map.set(code, Math.min(99, n)); else map.delete(code);
   room.setPicks([...map]).catch(e => toast(errMsg(e)));
 }
@@ -424,21 +436,25 @@ function refreshRoom() {
 }
 function renderRoomList() {
   const s = room.state; if (!s) return;
-  const people = s.members; const n = people.reduce((a, m) => a + m.picks.reduce((x, [, q]) => x + q, 0), 0);
+  const people = room.joining && !room.me && room.pending?.length ? [...s.members, { mid: '__joining', name: room.joining, picks: room.pending, online: true }] : s.members; const n = people.reduce((a, m) => a + m.picks.reduce((x, [, q]) => x + q, 0), 0);
   const total = people.reduce((a, m) => a + m.picks.reduce((x, [c, q]) => x + Math.round(priceOf(c) * 100) * q, 0), 0);
   const online = people.filter(m => m.online).length, done = people.filter(m => m.done).length;
   const agg = new Map(); people.forEach(m => m.picks.forEach(([c, q]) => agg.set(c, (agg.get(c) || 0) + q)));
   const status = m => !m.picks.length ? ['none', t('psNone')] : m.done ? ['done', t('psDone')] : ['busy', t('psBusy')];
-  const mine = m => m.mid === room.creds?.mid && !s.locked;
+  const isMe = m => m.mid === '__joining' || m.mid === room.creds?.mid;
+  const mine = m => isMe(m) && !s.locked; const uns = room.unsynced(); schedulePendCheck(room.pending && !uns ? room.pendingSince : 0);
   $('listCard').innerHTML = `<div class="card-h"><h3>${esc(t('listT'))}</h3>${rcBtnHTML(n > 0)}</div><p class="muted small rc-presence">${fmt(t('presence'), { on: online, all: people.length, done })}</p>
   <div class="sum"><div><span>${esc(t('sumOrig'))}</span><b>¥${Y(total)}</b></div><div><span>${esc(t('sumItems'))}</span><b>${n}</b></div><div><span>${esc(t('psDone'))}</span><b>${done}/${people.length}</b></div></div>` +
   people.map(m => { const [k, lab] = status(m); const sub = m.picks.reduce((x, [c, q]) => x + Math.round(priceOf(c) * 100) * q, 0);
     return `<div class="person"><div class="person-h"><span class="n"><i class="dot ${m.online ? 'on' : ''}" title="${esc(t(m.online ? 'online' : 'offline'))}"></i>${esc(m._n || m.name)}${m.mid === s.host ? ` <small class="tag">${esc(t('hostTag'))}</small>` : ''}${m.mid === room.creds?.mid ? ` <small class="tag me">${esc(t('meTag'))}</small>` : ''}</span><span class="ps ${k}">${esc(lab)}</span><span class="sub">¥${Y(sub)}</span></div>` +
-      m.picks.map(([c, q]) => `<div class="line${flashKeys.has(m.mid + ':' + c) ? ' flash' : ''}"><span class="nm">${esc(nameOf(c))}</span><span class="pr">¥${(priceOf(c) * q).toFixed(2)}</span>${mine(m) ? `<span class="qty"><button data-c="${c}" data-d="-1" aria-label="-">−</button><span>${q}</span><button data-c="${c}" data-d="1" aria-label="+">+</button></span>` : `<span class="qn">×${q}</span>`}</div>`).join('') + '</div>'; }).join('') +
+      m.picks.map(([c, q]) => `<div class="line${flashKeys.has(m.mid + ':' + c) ? ' flash' : ''}"><span class="nm">${esc(nameOf(c))}${isMe(m) && (m.mid === '__joining' || room.isPending(c)) ? pendHTML(uns) : ''}</span><span class="pr">¥${(priceOf(c) * q).toFixed(2)}</span>${mine(m) ? `<span class="qty"><button data-c="${c}" data-d="-1" aria-label="-">−</button><span>${q}</span><button data-c="${c}" data-d="1" aria-label="+">+</button></span>` : `<span class="qn">×${q}</span>`}</div>`).join('') + '</div>'; }).join('') +
   (agg.size ? `<details class="agg"><summary>${esc(t('aggT'))}</summary><div>${[...agg].map(([c, q]) => `<div class="line"><span class="nm">${esc(nameOf(c))}</span><span class="qn">×${q}</span></div>`).join('')}</div></details>` : '');
   flashKeys = new Set();
   $('rcBtn').onclick = saveRoomReceipt;
-  $('listCard').onclick = e => { const b = e.target.closest('button[data-c]'); if (b && room.me) roomAdd(b.dataset.c, +b.dataset.d); };
+  $('listCard').onclick = e => {
+    if (e.target.closest('[data-retry]')) { room.flush().catch(err => toast(errMsg(err))); return; }
+    const b = e.target.closest('button[data-c]'); if (b && (room.me || room.joining)) roomAdd(b.dataset.c, +b.dataset.d);
+  };
 }
 // ---------- 房间页：拼单小票（不含价格）----------
 let rcState = 'idle', rcTimer = 0;

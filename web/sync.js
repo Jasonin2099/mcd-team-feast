@@ -21,7 +21,7 @@ export async function createRoom({ t, name, picks }) {
 }
 
 export class Room extends EventTarget {
-  static STALE_MS = 10000; static POLL_MS = 5000;
+  static STALE_MS = 10000; static POLL_MS = 5000; static PENDING_MS = 10000;
   constructor(id) { super(); this.id = id; this.creds = loadCreds(id); this.state = null; this.status = 'connecting'; this.es = null; this.tries = 0; this.pending = null; this.pendingTimer = 0; }
   get isHost() { return !!this.creds?.hostKey; }
   get me() { return this.state?.members.find(m => m.mid === this.creds?.mid) || null; }
@@ -72,8 +72,10 @@ export class Room extends EventTarget {
   apply(s) {
     if (!s) return;
     if (this.state && typeof s.rev === 'number' && s.rev < this.state.rev) return; // 晚到的旧状态不覆盖新的
+    const m = this.creds && s.members.find(x => x.mid === this.creds.mid);
+    this.confirmed = m ? m.picks.map(p => [...p]) : [];
     // 自己还没发出去的改动优先，避免回弹
-    if (this.pending && this.creds) { const m = s.members.find(x => x.mid === this.creds.mid); if (m) m.picks = this.pending; }
+    if (this.pending && m) m.picks = this.pending;
     this.state = s; this.dispatchEvent(new Event('state'));
   }
   close(full = true) {
@@ -87,14 +89,42 @@ export class Room extends EventTarget {
     return j;
   }
   async join(name) {
-    const j = await req(`/rooms/${this.id}/op`, { op: 'join', name });
-    this.creds = { mid: j.mid, key: j.key }; saveCreds(this.id, this.creds); this.connect(); return j;
+    this.joining = name; this.dispatchEvent(new Event('state'));
+    try {
+      const j = await req(`/rooms/${this.id}/op`, { op: 'join', name });
+      this.creds = { mid: j.mid, key: j.key }; saveCreds(this.id, this.creds); this.connect();
+      if (this.pending) this.flush().catch(() => {}); // 加入过程中点的菜，加入成功后补发
+      return j;
+    } finally { this.joining = null; this.dispatchEvent(new Event('state')); }
   }
-  // 本地立即生效，250ms 合并后发送
+  // 本地立即生效，250ms 合并后发送。picks 是「我的完整点单」，服务器整体替换，所以补发不会重复、也不会丢数量。
   setPicks(picks) {
-    this.pending = picks; const m = this.me; if (m) m.picks = picks;
+    this.pending = picks; this.pendingSince ||= Date.now(); this.failed = false;
+    const m = this.me; if (m) m.picks = picks;
     this.dispatchEvent(new Event('state'));
     clearTimeout(this.pendingTimer);
-    return new Promise((ok, no) => { this.pendingTimer = setTimeout(async () => { const p = this.pending; try { await this.op('picks', { picks: p }); if (this.pending === p) this.pending = null; ok(); } catch (e) { this.pending = null; no(e); } }, 250); });
+    if (!this.creds) return Promise.resolve(); // 还没加入：等 join 成功后 flush
+    return new Promise((ok, no) => { this.pendingTimer = setTimeout(() => this.flush().then(ok, no), 250); });
   }
+  async flush() {
+    const p = this.pending; if (!p || !this.creds) return;
+    clearTimeout(this.pendingTimer); this.failed = false; this.dispatchEvent(new Event('state'));
+    try {
+      await this.op('picks', { picks: p });
+      if (this.pending === p) { this.pending = null; this.pendingSince = 0; this.confirmed = p.map(x => [...x]); }
+      this.dispatchEvent(new Event('state'));
+    } catch (e) {
+      if (e.status === 423 || e.status === 404 || e.status === 403) { this.pending = null; this.pendingSince = 0; } // 已锁单/房间没了：本地改动作废
+      else this.failed = true;
+      this.dispatchEvent(new Event('state')); throw e;
+    }
+  }
+  /** 这道菜我本地的数量还没被服务器确认 */
+  isPending(code) {
+    if (!this.pending) return false;
+    const q = (a, c) => (a || []).find(x => x[0] === c)?.[1] || 0;
+    return q(this.pending, code) !== q(this.confirmed, code);
+  }
+  /** 发送失败，或 10s 还没发出去 → 显示「未同步，点此重试」 */
+  unsynced(now = Date.now()) { return !!this.pending && (this.failed || now - this.pendingSince > Room.PENDING_MS); }
 }
