@@ -1,5 +1,7 @@
 <div align="center">
 
+[![license](https://img.shields.io/github/license/Jasonin2099/mcd-team-feast?style=flat&color=555)](LICENSE) [![last commit](https://img.shields.io/github/last-commit/Jasonin2099/mcd-team-feast?style=flat&color=555)](https://github.com/Jasonin2099/mcd-team-feast/commits) [![demo](https://img.shields.io/badge/demo-GitHub%20Pages-555?style=flat)](https://jasonin2099.github.io/mcd-team-feast/) [![stars](https://img.shields.io/github/stars/Jasonin2099/mcd-team-feast?style=flat&color=555)](https://github.com/Jasonin2099/mcd-team-feast/stargazers)
+
 **中文** | [English](README.en.md) | [日本語](README.ja.md)
 
 <img src="assets/hero.webp" width="100%" alt="麦麦拼单 mcd-team-feast：1024 程序员节，一行命令请全组吃麦当劳" />
