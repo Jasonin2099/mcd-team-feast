@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { MOCK } from '../src/mock.js';
 import { localPrice, findArray, MockProvider } from '../src/providers.js';
-import { newTeam, addPick, mergeItems, bestCoupons, splitBill, findItem } from '../src/feast.js';
+import { newTeam, addPick, mergeItems, bestCoupons, usableCoupons, splitBill, findItem } from '../src/feast.js';
 import { renderSVG } from '../src/card.js';
 import { parseResponse } from '../src/mcp.js';
 import { run } from '../src/app.js';
@@ -84,4 +84,31 @@ test('没有确认码绝不下单', async () => {
 test('真实模式缺 token 时给出友好提示', () => {
   const old = process.env.MCD_MCP_TOKEN; delete process.env.MCD_MCP_TOKEN;
   return assert.rejects(run(['stores'], quiet), /MCD_MCP_TOKEN/).finally(() => { if (old) process.env.MCD_MCP_TOKEN = old; });
+});
+
+test('empty or blank query never matches a menu item', () => {
+  assert.equal(findItem(MOCK.menu, ''), undefined);
+  assert.equal(findItem(MOCK.menu, '   '), undefined);
+  assert.equal(findItem(MOCK.menu, undefined), undefined);
+  const team = newTeam({ store: MOCK.stores[0] });
+  assert.throws(() => addPick(team, MOCK.menu, 'A', ''), /没找到/);
+  assert.equal(team.picks.length, 0);
+});
+
+test('quantity must be a whole number', () => {
+  const team = newTeam({ store: MOCK.stores[0] });
+  for (const q of [0, 1.5, NaN, -1]) assert.throws(() => addPick(team, MOCK.menu, 'A', '巨无霸', q), /整数/);
+  addPick(team, MOCK.menu, 'A', '巨无霸', 2);
+  assert.equal(team.picks[0].qty, 2);
+});
+
+test('item coupons for products not in the cart are skipped before pricing', async () => {
+  const items = [{ code: 'BM001', qty: 4 }, { code: 'SN002', qty: 2 }];
+  assert.deepEqual(usableCoupons(items, MOCK.coupons).map(c => c.id), ['C1024', 'C0050', 'CFRY', 'C88']);
+  const live = [{ id: 'X', type: 'item', itemCodes: ['ZZ9', 'SN002'] }, { id: 'Y', type: 'item', itemCodes: ['ZZ9'] }];
+  assert.deepEqual(usableCoupons(items, live).map(c => c.id), ['X']);
+  let calls = 0;
+  const { best } = await bestCoupons(async (i, c) => { calls++; return localPrice(MOCK.menu, i, c); }, items, MOCK.coupons);
+  assert.equal(calls, 8); // 不过滤时是 16 组（多出的都含拿铁券，必然无效）
+  assert.ok(!best.combo.some(c => c.id === 'CLATTE'));
 });

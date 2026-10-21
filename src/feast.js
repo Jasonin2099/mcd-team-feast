@@ -5,14 +5,15 @@ export function newTeam({ title = '1024 程序员节下午茶', organizer = 'lea
 }
 
 export function findItem(menu, q) {
-  const s = String(q).trim().toLowerCase();
+  const s = String(q ?? '').trim().toLowerCase();
+  if (!s) return undefined; // 空字符串会被 includes 匹配到第一项
   return menu.find(m => m.code.toLowerCase() === s) || menu.find(m => m.name.toLowerCase() === s) || menu.find(m => m.name.toLowerCase().includes(s));
 }
 
 export function addPick(team, menu, who, query, qty = 1) {
   const item = findItem(menu, query);
   if (!item) throw new Error(`菜单里没找到「${query}」，先 feast menu 看看？`);
-  if (!(qty >= 1)) throw new Error('数量至少为 1');
+  if (!Number.isInteger(qty) || qty < 1) throw new Error('数量必须是不小于 1 的整数');
   team.picks.push({ who, code: item.code, name: item.name, price: item.price, qty });
   return item;
 }
@@ -26,7 +27,14 @@ export function mergeItems(picks) {
 }
 
 // 枚举券组合（最多 3 张，整单券至多 1 张），挑应付最低的方案
-export async function bestCoupons(priceFn, items, coupons, maxSize = 3) {
+// 单品券先按购物车过滤：真实门店常有几十张券，C(n,3) 次 calculate-price 太多
+export function usableCoupons(items, coupons) {
+  const codes = new Set(items.map(i => i.code));
+  return coupons.filter(c => c.type !== 'item' || [c.itemCode, ...(c.itemCodes || [])].some(code => codes.has(code)));
+}
+
+export async function bestCoupons(priceFn, items, allCoupons, maxSize = 3) {
+  const coupons = usableCoupons(items, allCoupons);
   const combos = [[]];
   const rec = (start, cur) => {
     for (let i = start; i < coupons.length; i++) {

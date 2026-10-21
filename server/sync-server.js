@@ -5,7 +5,8 @@
 import http from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const PORT = +process.env.PORT || 8787;
 const HOST = process.env.HOST || '127.0.0.1';
@@ -158,7 +159,8 @@ export function createServer() {
   });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL：Windows 路径（C:\…）和含空格/中文的路径也能正确判断是否被直接运行
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   load();
   setInterval(sweep, 60e3); setInterval(save, 5e3);
   setInterval(() => hits.clear(), 10 * 60e3);

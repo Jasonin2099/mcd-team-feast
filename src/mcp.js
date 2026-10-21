@@ -1,4 +1,5 @@
 // 极简 MCP Streamable HTTP 客户端（零依赖，Node >= 18 自带 fetch）
+import { VERSION } from './version.js';
 export class McpClient {
   constructor({ url = process.env.MCD_MCP_URL || 'https://mcp.mcd.cn', token = process.env.MCD_MCP_TOKEN } = {}) {
     if (!token) throw new Error('缺少 MCD_MCP_TOKEN 环境变量（到 https://open.mcd.cn/mcp 获取），或加 --mock 体验');
@@ -24,7 +25,7 @@ export class McpClient {
   }
   async init() {
     if (this.ready) return;
-    await this.rpc('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'mcd-team-feast', version: '0.2.0' } });
+    await this.rpc('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'mcd-team-feast', version: VERSION } });
     await this.rpc('notifications/initialized', undefined, true);
     this.ready = true;
   }

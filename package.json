@@ -1,11 +1,11 @@
 {
   "name": "mcd-team-feast",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "麦麦拼单：1024 程序员节团餐/下午茶协调器 —— 基于麦当劳 MCP 的拼单、自动用券、人均分账、commit 风账单卡",
   "type": "module",
   "bin": { "mcd-team-feast": "bin/cli.js", "feast": "bin/cli.js" },
   "files": ["bin", "src", "SKILL.md", "mcp-config.example.json"],
-  "scripts": { "test": "node --test test/", "demo": "node bin/cli.js demo --mock --theme all --out out",
+  "scripts": { "test": "node --test", "demo": "node bin/cli.js demo --mock --theme all --out out",
     "assets": "node scripts/make-assets.js" },
   "engines": { "node": ">=18" },
   "keywords": ["mcdonalds", "mcp", "skill", "1024", "team-order", "麦当劳", "拼单"],
