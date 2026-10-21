@@ -2,6 +2,7 @@
 // 只暴露开团/点餐/结算等工具；真正下单不在此暴露，需用户在终端执行 feast order --confirm。
 import { createInterface } from 'node:readline';
 import { run } from './app.js';
+import { VERSION } from './version.js';
 
 const TOOLS = [
   { name: 'feast_stores', description: '查询麦当劳门店（城市+关键词），返回门店编码', inputSchema: { type: 'object', properties: { keyword: { type: 'string' }, city: { type: 'string' } } } },
@@ -27,7 +28,7 @@ function toArgv(name, a, mock) {
 export async function handle(msg, { mock }) {
   const { id, method, params } = msg;
   const ok = result => ({ jsonrpc: '2.0', id, result });
-  if (method === 'initialize') return ok({ protocolVersion: params?.protocolVersion || '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'mcd-team-feast', version: '0.2.0' } });
+  if (method === 'initialize') return ok({ protocolVersion: params?.protocolVersion || '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'mcd-team-feast', version: VERSION } });
   if (method === 'tools/list') return ok({ tools: TOOLS });
   if (method === 'tools/call') {
     const lines = [];
