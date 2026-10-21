@@ -27,7 +27,14 @@ export function mergeItems(picks) {
 }
 
 // 枚举券组合（最多 3 张，整单券至多 1 张），挑应付最低的方案
-export async function bestCoupons(priceFn, items, coupons, maxSize = 3) {
+// 单品券先按购物车过滤：真实门店常有几十张券，C(n,3) 次 calculate-price 太多
+export function usableCoupons(items, coupons) {
+  const codes = new Set(items.map(i => i.code));
+  return coupons.filter(c => c.type !== 'item' || [c.itemCode, ...(c.itemCodes || [])].some(code => codes.has(code)));
+}
+
+export async function bestCoupons(priceFn, items, allCoupons, maxSize = 3) {
+  const coupons = usableCoupons(items, allCoupons);
   const combos = [[]];
   const rec = (start, cur) => {
     for (let i = start; i < coupons.length; i++) {
