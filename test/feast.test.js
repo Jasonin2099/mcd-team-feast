@@ -85,3 +85,19 @@ test('真实模式缺 token 时给出友好提示', () => {
   const old = process.env.MCD_MCP_TOKEN; delete process.env.MCD_MCP_TOKEN;
   return assert.rejects(run(['stores'], quiet), /MCD_MCP_TOKEN/).finally(() => { if (old) process.env.MCD_MCP_TOKEN = old; });
 });
+
+test('empty or blank query never matches a menu item', () => {
+  assert.equal(findItem(MOCK.menu, ''), undefined);
+  assert.equal(findItem(MOCK.menu, '   '), undefined);
+  assert.equal(findItem(MOCK.menu, undefined), undefined);
+  const team = newTeam({ store: MOCK.stores[0] });
+  assert.throws(() => addPick(team, MOCK.menu, 'A', ''), /没找到/);
+  assert.equal(team.picks.length, 0);
+});
+
+test('quantity must be a whole number', () => {
+  const team = newTeam({ store: MOCK.stores[0] });
+  for (const q of [0, 1.5, NaN, -1]) assert.throws(() => addPick(team, MOCK.menu, 'A', '巨无霸', q), /整数/);
+  addPick(team, MOCK.menu, 'A', '巨无霸', 2);
+  assert.equal(team.picks[0].qty, 2);
+});

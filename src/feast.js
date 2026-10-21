@@ -5,14 +5,15 @@ export function newTeam({ title = '1024 程序员节下午茶', organizer = 'lea
 }
 
 export function findItem(menu, q) {
-  const s = String(q).trim().toLowerCase();
+  const s = String(q ?? '').trim().toLowerCase();
+  if (!s) return undefined; // 空字符串会被 includes 匹配到第一项
   return menu.find(m => m.code.toLowerCase() === s) || menu.find(m => m.name.toLowerCase() === s) || menu.find(m => m.name.toLowerCase().includes(s));
 }
 
 export function addPick(team, menu, who, query, qty = 1) {
   const item = findItem(menu, query);
   if (!item) throw new Error(`菜单里没找到「${query}」，先 feast menu 看看？`);
-  if (!(qty >= 1)) throw new Error('数量至少为 1');
+  if (!Number.isInteger(qty) || qty < 1) throw new Error('数量必须是不小于 1 的整数');
   team.picks.push({ who, code: item.code, name: item.name, price: item.price, qty });
   return item;
 }
