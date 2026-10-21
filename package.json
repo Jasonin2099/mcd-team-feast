@@ -5,7 +5,7 @@
   "type": "module",
   "bin": { "mcd-team-feast": "bin/cli.js", "feast": "bin/cli.js" },
   "files": ["bin", "src", "SKILL.md", "mcp-config.example.json"],
-  "scripts": { "test": "node --test test/", "demo": "node bin/cli.js demo --mock --theme all --out out",
+  "scripts": { "test": "node --test", "demo": "node bin/cli.js demo --mock --theme all --out out",
     "assets": "node scripts/make-assets.js" },
   "engines": { "node": ">=18" },
   "keywords": ["mcdonalds", "mcp", "skill", "1024", "team-order", "麦当劳", "拼单"],
