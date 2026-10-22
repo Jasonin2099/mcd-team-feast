@@ -86,6 +86,12 @@ test('真实模式缺 token 时给出友好提示', () => {
   return assert.rejects(run(['stores'], quiet), /MCD_MCP_TOKEN/).finally(() => { if (old) process.env.MCD_MCP_TOKEN = old; });
 });
 
+test('partial query prefers the shortest matching name, then menu order', () => {
+  const menu = [{ code: 'A', name: '麦乐鸡分享盒 20 块' }, { code: 'B', name: '麦乐鸡 5 块' }, { code: 'C', name: '麦乐鸡 9 块' }];
+  assert.equal(findItem(menu, '麦乐鸡').code, 'B');
+  assert.equal(findItem(menu, '分享').code, 'A');
+});
+
 test('empty or blank query never matches a menu item', () => {
   assert.equal(findItem(MOCK.menu, ''), undefined);
   assert.equal(findItem(MOCK.menu, '   '), undefined);

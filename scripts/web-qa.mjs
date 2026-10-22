@@ -1,5 +1,7 @@
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 const BASE = process.env.BASE || 'http://localhost:18923/index.html';
 const OUT = process.env.OUT || 'shots'; const prefix = process.argv[2] || 'after';
 const b64e = s => Buffer.from(s, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -8,7 +10,7 @@ const longName = '超级无敌长名字的全栈工程师兼产品经理兼运�
 const many = []; for (let i = 0; i < 40; i++) for (const c of ['BM001', 'SN002', 'DR002', 'DS003']) many.push([i === 0 ? longName : `同事${i}号(部门${i % 7})`, c, 1 + (i % 3)]);
 const stress = BASE + '#' + b64e(JSON.stringify({ t: '一个非常非常长的团名用来测试换行和截断效果的场景', o: longName, p: many }));
 const problems = [];
-const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+const b = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: ['--no-sandbox'] });
 async function check(p, label) {
   const r = await p.evaluate(() => {
     const txt = document.body.innerText; const bad = [];
@@ -113,7 +115,7 @@ for (const lang of ['en', 'ja']) { const p = await page(360, 780, 'light', lang)
   await p.click('#imgBtn'); await wait(1200); const ov = await p.evaluate(() => !document.getElementById('overlay').hidden && !!document.querySelector('#overlay img')?.naturalWidth);
   if (!ov) problems.push('wechat overlay missing'); await p.screenshot({ path: `${OUT}/${prefix}-wechat-overlay-412.png` });
   await p.goBack(); await wait(200); if (!(await p.evaluate(() => document.getElementById('overlay').hidden))) problems.push('overlay not closed by back'); await p.close(); }
-{ const p = await page(1440, 900, 'light'); const dl = '/tmp/pt/dl2'; fs.rmSync(dl, { recursive: true, force: true }); fs.mkdirSync(dl);
+{ const p = await page(1440, 900, 'light'); const dl = path.join(os.tmpdir(), 'feast-qa-dl'); fs.rmSync(dl, { recursive: true, force: true }); fs.mkdirSync(dl, { recursive: true });
   const s = await p.createCDPSession(); await s.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: dl });
   await p.goto(BASE, { waitUntil: 'networkidle0' }); await p.click('#start'); await wait(200); await p.click('#sampleBtn'); await wait(200); await p.click('#billBtn'); await wait(500);
   for (const th of ['git', 'pr', 'receipt']) { await p.click(`[data-th="${th}"]`); await wait(300); await p.click('#imgBtn'); await wait(1500); }

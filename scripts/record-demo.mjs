@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer-core';
 const BASE = (process.env.WEB || 'http://127.0.0.1:8000') + '/?sync=' + encodeURIComponent((process.env.SYNC || 'http://127.0.0.1:8787'));
 const W = 390, H = 760; const wait = ms => new Promise(r => setTimeout(r, ms));
-const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+const b = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: ['--no-sandbox'] });
 async function client(name) { const ctx = await b.createBrowserContext(); const p = await ctx.newPage(); await p.setViewport({ width: W, height: H, deviceScaleFactor: 1 }); await p.evaluateOnNewDocument(() => { localStorage.feastLang = 'zh'; }); p.on('dialog', d => d.accept()); return p; }
 const click = (p, s) => p.evaluate(s => document.querySelector(s)?.click(), s);
 const scrollTo = (p, s) => p.evaluate(s => { const e = document.querySelector(s); if (e) window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 60, behavior: 'instant' }); }, s);
