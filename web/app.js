@@ -4,7 +4,7 @@ import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
 import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016i';
 import { I18N } from './i18n.js?v=20261016i';
 import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016i';
-import { Room, createRoom, SYNC_URL } from './sync.js?v=20261018x';
+import { Room, createRoom, SYNC_URL } from './sync.js?v=20261023b';
 import qrcode from './vendor/qrcode.js';
 import { clip } from './text.js?v=20261018x';
 import { ICONS as RC_IC, BTN_ICON, receiptHTML, exportReceipt, rcFilename } from './room-receipt.js?v=20261018x';
