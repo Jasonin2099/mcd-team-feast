@@ -2,8 +2,18 @@ import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-const BASE = process.env.BASE || 'http://localhost:18923/index.html';
-const OUT = process.env.OUT || 'shots'; const prefix = process.argv[2] || 'after';
+import http from 'node:http';
+import { fileURLToPath } from 'node:url';
+// 用法：CHROME=<chrome 路径> node scripts/web-qa.mjs [前缀]  （需 npm i --no-save puppeteer-core）
+// 不给 BASE 时自己起静态服务；?sync=off 走纯链接模式，不会去线上同步服务开房间
+let BASE = process.env.BASE, srv;
+if (!BASE) {
+  const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.json': 'application/json', '.txt': 'text/plain' };
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  srv = http.createServer((q, r) => { const f = path.join(root, decodeURIComponent(new URL(q.url, 'http://x').pathname)); if (!f.startsWith(root)) return r.writeHead(403).end(); fs.readFile(f, (e, d) => e ? r.writeHead(404).end() : r.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' }).end(d)); });
+  await new Promise(ok => srv.listen(0, '127.0.0.1', ok)); BASE = `http://127.0.0.1:${srv.address().port}/index.html?sync=off`;
+}
+const OUT = process.env.OUT || 'shots'; fs.mkdirSync(OUT, { recursive: true }); const prefix = process.argv[2] || 'after';
 const b64e = s => Buffer.from(s, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const oldLink = BASE + '#' + b64e(JSON.stringify({ t: '旧链接团', o: '老王', p: [['老王', 'BM001', 1], ['小李', 'DR002', 2]] }));
 const longName = '超级无敌长名字的全栈工程师兼产品经理兼运维兼测试同学-' + 'x'.repeat(20);
@@ -121,5 +131,5 @@ for (const lang of ['en', 'ja']) { const p = await page(360, 780, 'light', lang)
   for (const th of ['git', 'pr', 'receipt']) { await p.click(`[data-th="${th}"]`); await wait(300); await p.click('#imgBtn'); await wait(1500); }
   const st = await p.evaluate(() => document.getElementById('imgBtn').dataset.state || 'idle');
   const files = fs.readdirSync(dl); if (files.length < 3) problems.push('downloads: ' + files.join(',')); console.log('downloads', files, st); await p.close(); }
-await b.close();
+await b.close(); srv?.close();
 console.log(problems.length ? 'PROBLEMS:\n' + problems.join('\n') : 'ALL CHECKS PASSED');
