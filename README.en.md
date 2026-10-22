@@ -20,7 +20,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![McDonald's China MCP](https://img.shields.io/badge/McDonald's%20China-MCP-DA291C?logo=mcdonalds&logoColor=FFC72C)](https://github.com/M-China/mcd-mcp-server)
 [![Zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
-[![Tests](https://img.shields.io/badge/tests-53%20passing-brightgreen)](test)
+[![Tests](https://img.shields.io/badge/tests-62%20passing-brightgreen)](test)
 [![Web](https://img.shields.io/badge/demo-GitHub%20Pages-FFC72C)](https://jasonin2099.github.io/mcd-team-feast/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -195,7 +195,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://your.site node ser
 ## ❓ FAQ
 
 <details><summary>Will it order or charge me?</summary>No. The web app only prices and splits. An order is created only when you run <code>feast order --confirm &lt;code&gt;</code> yourself, and you pay via the returned link.</details>
-<details><summary>Are the web menu and prices real?</summary>The web app uses a demo menu with made-up prices. Real menus, coupons and prices come from the CLI with McDonald's China MCP.</details>
+<details><summary>Are the web menu and prices real?</summary>The web app uses a demo menu with made-up prices: 20 items across 7 categories (burgers, set meals, fried chicken, snacks, desserts, drinks, McCafé), with a jump bar at the top of the menu. Real menus, coupons and prices come from the CLI with McDonald's China MCP.</details>
 <details><summary>The sync server won't connect?</summary>It falls back to link mode automatically. Right after a new domain goes live, some networks cache DNS for up to ~30 minutes — try again later.</details>
 
 ## 🙏 Acknowledgements & contributing
@@ -206,7 +206,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://your.site node ser
 
 <a href="https://github.com/Jasonin2099/mcd-team-feast/graphs/contributors"><img src="https://contrib.rocks/image?repo=Jasonin2099/mcd-team-feast" alt="contributors" /></a>
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm test` runs 53 zero-dependency tests (Node 18+).
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm test` runs 62 zero-dependency tests (Node 18+).
 
 ## 📈 Star History
 

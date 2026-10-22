@@ -20,7 +20,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![McDonald's MCP](https://img.shields.io/badge/麦当劳-MCP-DA291C?logo=mcdonalds&logoColor=FFC72C)](https://github.com/M-China/mcd-mcp-server)
 [![Zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
-[![Tests](https://img.shields.io/badge/tests-53%20passing-brightgreen)](test)
+[![Tests](https://img.shields.io/badge/tests-62%20passing-brightgreen)](test)
 [![Web](https://img.shields.io/badge/在线体验-GitHub%20Pages-FFC72C)](https://jasonin2099.github.io/mcd-team-feast/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![M-CODE](https://img.shields.io/badge/M--CODE-程序员节创意开发大赛-FFC72C)](https://github.com/M-China/mcd-developer-innovation-challenge)
@@ -200,7 +200,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://你的域名 node 
 ## ❓ FAQ
 
 <details><summary>会不会替我下单或扣钱？</summary>不会。网页只计价分账；只有你在终端手动执行 <code>feast order --confirm &lt;确认码&gt;</code> 才会创建订单，并返回支付链接由你自己支付。</details>
-<details><summary>网页上的菜单和价格是真的吗？</summary>网页版使用演示菜单（虚构价格），用来体验流程。真实门店菜单、券和价格需要用 CLI 接入麦当劳 MCP。</details>
+<details><summary>网页上的菜单和价格是真的吗？</summary>网页版使用演示菜单（虚构价格），用来体验流程：汉堡、套餐、炸鸡、小食、甜品、饮品、麦咖啡 7 个品类共 20 款，菜单顶部可一键跳到对应品类。真实门店菜单、券和价格需要用 CLI 接入麦当劳 MCP。</details>
 <details><summary>同步服务连不上怎么办？</summary>会自动退回链接模式：数据编码在链接里，大家把更新后的链接发回群里即可。新域名刚生效时个别网络可能有几十分钟 DNS 缓存，稍后再试。</details>
 <details><summary>能在国外用吗？</summary>网页和实时同步在哪都能用；真实计价依赖麦当劳中国 MCP，仅支持中国大陆门店。</details>
 
@@ -212,7 +212,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://你的域名 node 
 
 <a href="https://github.com/Jasonin2099/mcd-team-feast/graphs/contributors"><img src="https://contrib.rocks/image?repo=Jasonin2099/mcd-team-feast" alt="contributors" /></a>
 
-欢迎 PR：新主题、新彩蛋命令、更聪明的分账规则，详见 [CONTRIBUTING.md](CONTRIBUTING.md)。`npm test` 跑测试（53 个用例，零依赖，Node 18+）。
+欢迎 PR：新主题、新彩蛋命令、更聪明的分账规则，详见 [CONTRIBUTING.md](CONTRIBUTING.md)。`npm test` 跑测试（62 个用例，零依赖，Node 18+）。
 
 ## 📈 Star History
 
