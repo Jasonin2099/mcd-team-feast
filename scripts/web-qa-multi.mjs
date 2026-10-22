@@ -5,7 +5,7 @@ const BASE = (process.env.WEB || 'http://127.0.0.1:8000') + '/?sync=' + encodeUR
 const OUT = (process.env.OUT || 'shots') + '/' + (process.argv[2] || 'room');
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? '✓ ' : '✗ ') + m); };
-const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+const b = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: ['--no-sandbox'] });
 async function client(scheme = 'light') { const ctx = await b.createBrowserContext(); const p = await ctx.newPage(); await p.setViewport({ width: 412, height: 915, deviceScaleFactor: 1 }); await p.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }]); p.on('pageerror', e => fails.push('pageerror ' + e.message)); p.on('dialog', d => d.accept()); await p.evaluateOnNewDocument(() => { try { localStorage.feastLang = 'zh'; } catch {} }); return p; }
 const click = (p, sel) => p.evaluate(s => document.querySelector(s).click(), sel);
 const until = async (p, fn, arg, ms = 5000, msg = '') => { try { await p.waitForFunction(fn, { timeout: ms, polling: 100 }, arg); return true; } catch { return false; } };
