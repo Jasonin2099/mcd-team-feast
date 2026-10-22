@@ -7,7 +7,9 @@ export function newTeam({ title = '1024 程序员节下午茶', organizer = 'lea
 export function findItem(menu, q) {
   const s = String(q ?? '').trim().toLowerCase();
   if (!s) return undefined; // 空字符串会被 includes 匹配到第一项
-  return menu.find(m => m.code.toLowerCase() === s) || menu.find(m => m.name.toLowerCase() === s) || menu.find(m => m.name.toLowerCase().includes(s));
+  // 模糊匹配取名字最短的：「麦乐鸡」应是 5 块而不是分享盒；等长时按菜单顺序
+  return menu.find(m => m.code.toLowerCase() === s) || menu.find(m => m.name.toLowerCase() === s) ||
+    menu.filter(m => m.name.toLowerCase().includes(s)).reduce((a, m) => (!a || m.name.length < a.name.length ? m : a), undefined);
 }
 
 export function addPick(team, menu, who, query, qty = 1) {
