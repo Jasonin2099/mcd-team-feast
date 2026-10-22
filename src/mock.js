@@ -33,6 +33,7 @@ export const MOCK = {
     { id: 'C0050', title: '满50减8', type: 'threshold', threshold: 50, amount: 8 },
     { id: 'CFRY', title: '中薯条 第二份半价', type: 'item', itemCode: 'SN002', amount: 6, perOrder: 1 },
     { id: 'CLATTE', title: '拿铁立减 5 元', type: 'item', itemCode: 'DR002', amount: 5, perOrder: 1 },
+    { id: 'CSET', title: '巨无霸套餐立减 6 元', type: 'item', itemCode: 'ST001', amount: 6, perOrder: 1 },
     { id: 'C88', title: '全单 88 折(最高减 15)', type: 'percent', rate: 0.88, cap: 15 },
   ],
 };
