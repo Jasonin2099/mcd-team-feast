@@ -2,3 +2,4 @@ node_modules/
 .feast*.json
 .*.tmp.html
 out/
+shots/
