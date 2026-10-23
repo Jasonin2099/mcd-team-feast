@@ -19,7 +19,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/Jasonin2099/mcd-team-feast?style=social)](https://github.com/Jasonin2099/mcd-team-feast/stargazers)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
-[![Tests](https://img.shields.io/badge/tests-62%20passing-brightgreen)](test)
+[![Tests](https://img.shields.io/badge/tests-64%20passing-brightgreen)](test)
 [![Web](https://img.shields.io/badge/デモ-GitHub%20Pages-FFC72C)](https://jasonin2099.github.io/mcd-team-feast/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -205,7 +205,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://your.site node ser
 
 <a href="https://github.com/Jasonin2099/mcd-team-feast/graphs/contributors"><img src="https://contrib.rocks/image?repo=Jasonin2099/mcd-team-feast" alt="contributors" /></a>
 
-PR 歓迎です。[CONTRIBUTING.md](CONTRIBUTING.md) を参照。`npm test` で 62 件のテスト（依存ゼロ・Node 18+）。
+PR 歓迎です。[CONTRIBUTING.md](CONTRIBUTING.md) を参照。`npm test` で 64 件のテスト（依存ゼロ・Node 18+）。
 
 ## 📈 Star History
 
