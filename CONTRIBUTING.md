@@ -18,6 +18,8 @@ CHROME="/path/to/chrome" node scripts/web-qa.mjs          # 单页：3 种宽度
 CHROME="/path/to/chrome" node scripts/web-qa-multi.mjs    # 多人房间：并发点单、断线重连、锁单
 ```
 
+重录 README 的实时演示动画：`node scripts/record-demo.mjs shots/rec` 录三端截图，再 `NOTO_CJK_DIR=… python scripts/compose-demo.py shots/rec` 合成 `assets/realtime-demo.webp`。
+
 两个脚本都会自己起本地静态服务；`web-qa-multi` 还会在 `:8787` 起一个本地同步服务，测完关掉。截图默认写到 `shots/`（`OUT=` 可改）。
 
 - 网页地址加 `?sync=off` 可关掉实时同步，只用链接分享，不会连线上同步服务。
