@@ -65,9 +65,12 @@ function body(req) {
   });
 }
 // 简单限流：每 IP 每分钟 240 次写
+// 只信 nginx 写入的 X-Real-IP（服务默认只听 127.0.0.1，外部请求必经 nginx，nginx 会覆盖这个头）。
+// 不读 CF-Connecting-IP：nginx 会把客户端自带的这个头原样转发，绕过 CDN 直连源站时可随意伪造；
+// 用 Cloudflare 时在 nginx 里 set_real_ip_from + real_ip_header CF-Connecting-IP，X-Real-IP 就是真实访客
 const hits = new Map();
 function limited(req) {
-  const ip = req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.socket.remoteAddress;
+  const ip = req.headers['x-real-ip'] || req.socket.remoteAddress;
   const now = Date.now(), h = hits.get(ip) || { n: 0, t: now };
   if (now - h.t > 60e3) { h.n = 0; h.t = now; }
   h.n++; hits.set(ip, h); return h.n > 240;

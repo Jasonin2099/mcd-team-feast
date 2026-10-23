@@ -37,3 +37,10 @@ test('UI 不再有实时同步开关文案', async () => {
   const src = readFileSync(new URL('../web/app.js', import.meta.url), 'utf8') + readFileSync(new URL('../web/i18n.js', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /goLiveD|modeLink|id="goLive"|liveOn/);
 });
+
+test('?sync=off 关闭实时同步，即使页面配置了默认服务', async () => {
+  const old = globalThis.location, oldQ = doc.querySelector;
+  globalThis.location = { search: '?sync=off' }; doc.querySelector = () => ({ content: 'https://sync.example' });
+  try { assert.equal((await import('../web/sync.js?off')).SYNC_URL, ''); }
+  finally { globalThis.location = old; doc.querySelector = oldQ; }
+});

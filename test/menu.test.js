@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MOCK } from '../src/mock.js';
-import { findItem } from '../src/feast.js';
+import { findItem, bestCoupons } from '../src/feast.js';
+import { localPrice } from '../src/providers.js';
 
 test('演示菜单：编码唯一，同品类连续排列（网页/CLI 按相邻项分组）', () => {
   const codes = MOCK.menu.map(m => m.code);
@@ -34,4 +35,10 @@ test('新品类能按名字点到，模糊词不会误中套餐', () => {
 
 test('券引用的单品都在菜单里', () => {
   for (const c of MOCK.coupons.filter(c => c.type === 'item')) assert.ok(findItem(MOCK.menu, c.itemCode), c.id);
+});
+
+test('团里点了套餐时，套餐券会进最优组合', async () => {
+  const items = [{ code: 'ST001', qty: 3 }, { code: 'DR002', qty: 2 }];
+  const { best } = await bestCoupons(async (i, c) => localPrice(MOCK.menu, i, c), items, MOCK.coupons);
+  assert.ok(best.combo.some(c => c.id === 'CSET'), best.combo.map(c => c.id).join('+'));
 });

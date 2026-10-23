@@ -4,7 +4,7 @@ import { mergeItems, bestCoupons, splitBill, addPick } from '../src/feast.js';
 import { renderSVG, fontCSS, FONT_FILES } from '../src/card-core.js?v=20261016i';
 import { I18N } from './i18n.js?v=20261016i';
 import { pickSign, signContext, cleanSign, candidates } from '../src/signatures.js?v=20261016i';
-import { Room, createRoom, SYNC_URL } from './sync.js?v=20261018x';
+import { Room, createRoom, SYNC_URL } from './sync.js?v=20261023b';
 import qrcode from './vendor/qrcode.js';
 import { clip } from './text.js?v=20261018x';
 import { ICONS as RC_IC, BTN_ICON, receiptHTML, exportReceipt, rcFilename } from './room-receipt.js?v=20261018x';
@@ -250,7 +250,6 @@ function renderOrder() {
   if (room) return renderRoomOrder();
   $('apptitle').textContent = state.t || t('appTitle');
   const counts = Object.fromEntries(state.p.filter(x => x[0] === me).map(x => [x[1], x[2]]));
-  let cat = '';
   $('appbody').innerHTML = `<div class="order-grid">
   <div class="card a-team">
     <div class="card-h"><h3>${esc(t('teamT'))}</h3><span class="chip conn" id="modeChip" role="status">${esc(t(SYNC_URL ? 'st_connecting' : 'st_offline'))}</span></div>
@@ -267,8 +266,7 @@ function renderOrder() {
   <div class="card a-list" id="listCard"></div>
   <div class="card a-menu">
     <div class="card-h"><h3>${esc(t('menuT'))}</h3><span class="muted small">${esc(t('menuHint'))}</span></div>
-    <div class="menu" id="menu">${MOCK.menu.map(m => (m.category !== cat ? `<div class="cat">${esc(cat = m.category)}</div>` : '') +
-      `<button class="item" data-c="${m.code}"><b>${esc(m.name)}</b><small>¥${m.price.toFixed(2)} · ${m.kcal} kcal</small>${counts[m.code] ? `<span class="q">${counts[m.code]}</span>` : ''}</button>`).join('')}</div>
+    ${menuHTML(counts)}
   </div>
   </div></div>`;
   renderList();
@@ -395,7 +393,6 @@ function renderRoomOrder() {
   }
   if (!s) { $('appbody').innerHTML = `<div class="card empty"><b>${chipHTML()}</b></div>`; $('appbar').innerHTML = ''; return; }
   const myCounts = Object.fromEntries(room.me?.picks || []);
-  let cat = '';
   $('appbody').innerHTML = `<div class="order-grid">
   <div class="card a-team">
     <div class="card-h"><h3>${esc(t('teamT'))}</h3>${chipHTML()}</div>
@@ -413,8 +410,7 @@ function renderRoomOrder() {
   <div class="card a-list" id="listCard"></div>
   <div class="card a-menu${locked ? ' locked' : ''}">
     <div class="card-h"><h3>${esc(t('menuT'))}</h3><span class="muted small">${esc(t(locked ? 'menuLocked' : 'menuHint'))}</span></div>
-    <div class="menu" id="menu">${MOCK.menu.map(m => (m.category !== cat ? `<div class="cat">${esc(cat = m.category)}</div>` : '') +
-      `<button class="item" data-c="${m.code}" ${locked ? 'disabled' : ''}><b>${esc(m.name)}</b><small>¥${m.price.toFixed(2)} · ${m.kcal} kcal</small>${myCounts[m.code] ? `<span class="q">${myCounts[m.code]}</span>` : ''}</button>`).join('')}</div>
+    ${menuHTML(myCounts, locked)}
   </div></div>`;
   renderRoomList(); renderRoomBar(); tickCd(); clearInterval(cdTimer); cdTimer = setInterval(() => { if (!room || cur !== 'app') return clearInterval(cdTimer); tickCd(); }, 1000);
   let tt; $('fTitle') && ($('fTitle').oninput = e => { $('apptitle').textContent = e.target.value || t('appTitle'); clearTimeout(tt); tt = setTimeout(() => room.op('meta', { t: e.target.value }).catch(err => toast(errMsg(err))), 400); });
@@ -427,6 +423,17 @@ function renderRoomOrder() {
     roomAdd(el.dataset.c, 1);
   };
 }
+// 菜单（本地/房间两种模式共用）：品类跳转条 + 按相邻品类分组的单品
+function menuHTML(counts, locked = false) {
+  const cats = [...new Set(MOCK.menu.map(m => m.category))]; let cat = '';
+  return `<nav class="cats" aria-label="${esc(t('menuT'))}">${cats.map((c, i) => `<button type="button" class="pill" data-jump="${i}">${esc(c)}</button>`).join('')}</nav>
+    <div class="menu" id="menu">${MOCK.menu.map(m => (m.category !== cat ? `<div class="cat" id="cat-${cats.indexOf(cat = m.category)}">${esc(cat)}</div>` : '') +
+      `<button class="item" data-c="${m.code}" ${locked ? 'disabled' : ''}><b>${esc(m.name)}</b><small>¥${m.price.toFixed(2)} · ${m.kcal} kcal</small>${counts[m.code] ? `<span class="q">${counts[m.code]}</span>` : ''}</button>`).join('')}</div>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-jump]'); if (!b) return;
+  $('cat-' + b.dataset.jump)?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+});
 function roomAdd(code, d) {
   const map = new Map(room.pending || room.me?.picks || []); const n = (map.get(code) || 0) + d;
   if (n > 0) map.set(code, Math.min(99, n)); else map.delete(code);

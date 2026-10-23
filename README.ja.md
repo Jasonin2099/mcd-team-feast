@@ -19,7 +19,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/Jasonin2099/mcd-team-feast?style=social)](https://github.com/Jasonin2099/mcd-team-feast/stargazers)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
-[![Tests](https://img.shields.io/badge/tests-53%20passing-brightgreen)](test)
+[![Tests](https://img.shields.io/badge/tests-64%20passing-brightgreen)](test)
 [![Web](https://img.shields.io/badge/デモ-GitHub%20Pages-FFC72C)](https://jasonin2099.github.io/mcd-team-feast/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -194,7 +194,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://your.site node ser
 ## ❓ FAQ
 
 <details><summary>勝手に注文や課金をしますか？</summary>しません。Web は計算と割り勘のみ。<code>feast order --confirm &lt;コード&gt;</code> を自分で実行したときだけ注文が作られ、支払いは返されたリンクから本人が行います。</details>
-<details><summary>Web のメニューや価格は本物？</summary>Web はデモ用のメニュー（架空の価格）です。実際のメニュー・クーポン・価格は CLI とマクドナルド中国 MCP で取得します。</details>
+<details><summary>Web のメニューや価格は本物？</summary>Web はデモ用のメニュー（架空の価格）です。バーガー・セット・フライドチキン・サイド・デザート・ドリンク・マックカフェの 7 カテゴリ計 20 品で、メニュー上部からカテゴリへジャンプできます。実際のメニュー・クーポン・価格は CLI とマクドナルド中国 MCP で取得します。</details>
 <details><summary>同期サーバーにつながらない</summary>自動でリンクモードに切り替わります。新しいドメインの公開直後は、ネットワークによって DNS が最大 30 分ほどキャッシュされることがあります。少し待って再試行してください。</details>
 
 ## 🙏 謝辞・コントリビュート
@@ -205,7 +205,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://your.site node ser
 
 <a href="https://github.com/Jasonin2099/mcd-team-feast/graphs/contributors"><img src="https://contrib.rocks/image?repo=Jasonin2099/mcd-team-feast" alt="contributors" /></a>
 
-PR 歓迎です。[CONTRIBUTING.md](CONTRIBUTING.md) を参照。`npm test` で 53 件のテスト（依存ゼロ・Node 18+）。
+PR 歓迎です。[CONTRIBUTING.md](CONTRIBUTING.md) を参照。`npm test` で 64 件のテスト（依存ゼロ・Node 18+）。
 
 ## 📈 Star History
 

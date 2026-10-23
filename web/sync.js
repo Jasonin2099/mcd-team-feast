@@ -1,6 +1,7 @@
 // 实时拼单房间客户端：EventSource 收状态，fetch POST 发操作。断线自动重连。
 // 同步服务地址：?sync= 参数 > window.FEAST_SYNC_URL > <meta name="feast-sync"> ；自建时改这里即可
-export const SYNC_URL = (() => { try { return (new URLSearchParams(location.search).get('sync') || globalThis.FEAST_SYNC_URL || document.querySelector('meta[name="feast-sync"]')?.content || '').replace(/\/+$/, ''); } catch { return ''; } })();
+// ?sync=off 关闭实时同步，只用链接分享（离线演示、QA 不碰线上服务）
+export const SYNC_URL = (() => { try { const q = new URLSearchParams(location.search).get('sync'); if (q === 'off') return ''; return (q || globalThis.FEAST_SYNC_URL || document.querySelector('meta[name="feast-sync"]')?.content || '').replace(/\/+$/, ''); } catch { return ''; } })();
 const ck = id => 'feastRoom:' + id;
 export const loadCreds = id => { try { return JSON.parse(localStorage.getItem(ck(id)) || 'null'); } catch { return null; } };
 export const saveCreds = (id, c) => { try { localStorage.setItem(ck(id), JSON.stringify(c)); } catch {} };

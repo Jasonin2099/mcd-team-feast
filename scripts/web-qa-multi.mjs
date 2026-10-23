@@ -1,19 +1,33 @@
 import puppeteer from 'puppeteer-core';
-import { spawn, execSync } from 'node:child_process';
-const SYNC = process.env.SYNC || (process.env.SYNC || 'http://127.0.0.1:8787'); const REMOTE = !SYNC.includes('127.0.0.1');
-const BASE = (process.env.WEB || 'http://127.0.0.1:8000') + '/?sync=' + encodeURIComponent(SYNC);
-const OUT = (process.env.OUT || 'shots') + '/' + (process.argv[2] || 'room');
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { serve } from './serve.mjs';
+// 用法：CHROME=<chrome 路径> node scripts/web-qa-multi.mjs [前缀]  （需 npm i --no-save puppeteer-core）
+// 默认在本机起网页静态服务 + 同步服务（:8787）；给 SYNC / WEB 可改测远端
+const SYNC = process.env.SYNC || 'http://127.0.0.1:8787'; const REMOTE = !SYNC.includes('127.0.0.1');
+const web = process.env.WEB ? { url: process.env.WEB, close() {} } : await serve();
+const BASE = web.url + '/?sync=' + encodeURIComponent(SYNC);
+// 本地同步服务由脚本管理；Windows 上 kill 不会触发 SIGTERM 落盘，所以重启前等过 5s 的定时保存
+const DATA = path.join(os.tmpdir(), 'feast-qa-rooms.json'); let sync = null;
+const startSync = () => { sync = spawn(process.execPath, ['server/sync-server.js'], { env: { ...process.env, PORT: new URL(SYNC).port, DATA }, stdio: 'ignore' }); };
+const stopSync = () => new Promise(r => { if (!sync || sync.exitCode !== null) return r(); sync.once('exit', r); sync.kill(); });
+if (!REMOTE) { fs.rmSync(DATA, { force: true }); startSync(); }
+const OUT = (process.env.OUT || 'shots') + '/' + (process.argv[2] || 'room'); fs.mkdirSync(path.dirname(OUT), { recursive: true });
 const wait = ms => new Promise(r => setTimeout(r, ms));
+if (!REMOTE) await wait(500);
 const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? '✓ ' : '✗ ') + m); };
 const b = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: ['--no-sandbox'] });
 async function client(scheme = 'light') { const ctx = await b.createBrowserContext(); const p = await ctx.newPage(); await p.setViewport({ width: 412, height: 915, deviceScaleFactor: 1 }); await p.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }]); p.on('pageerror', e => fails.push('pageerror ' + e.message)); p.on('dialog', d => d.accept()); await p.evaluateOnNewDocument(() => { try { localStorage.feastLang = 'zh'; } catch {} }); return p; }
-const click = (p, sel) => p.evaluate(s => document.querySelector(s).click(), sel);
+// 真实鼠标点击（会让昵称框失焦 → 自动建房）；先滚到屏幕中间，免得被底部操作栏挡住
+const tap = async (p, sel) => { await p.$eval(sel, e => e.scrollIntoView({ block: 'center' })); await p.click(sel); };
+const click = async (p, sel) => { await p.waitForSelector(sel, { timeout: 8000 }); await p.evaluate(s => document.querySelector(s).click(), sel); };
 const until = async (p, fn, arg, ms = 5000, msg = '') => { try { await p.waitForFunction(fn, { timeout: ms, polling: 100 }, arg); return true; } catch { return false; } };
 
 const H = await client(); await H.goto(BASE, { waitUntil: 'load' });
 await click(H, '#start'); await wait(300);
-await H.type('#fMe', '老王'); await click(H, '.item[data-c="BM001"]'); await wait(100);
-await click(H, '#goLive');
+await H.type('#fMe', '老王'); await tap(H, '.item[data-c="BM001"]'); // 昵称失焦即自动建房间
 ok(await until(H, () => /#r=/.test(location.hash) && document.querySelector('#modeChip.live'), null, 6000), 'host created room, chip live');
 const url = await H.evaluate(() => location.href); console.log(url);
 ok(await H.evaluate(() => document.querySelectorAll('#listCard .person').length === 1 && /巨无霸/.test(document.getElementById('listCard').textContent)), 'host local pick carried into room');
@@ -34,7 +48,7 @@ const want = () => { const t = document.getElementById('listCard').textContent; 
 for (const [p, n] of [[H, 'host'], [A, 'A'], [B, 'B']]) ok(await until(p, want, null, 6000), `${n} sees everyone's concurrent picks`);
 ok(await until(H, () => document.querySelectorAll('#listCard .dot.on').length === 3, null, 4000), 'presence: 3 online');
 await click(A, '#doneBtn');
-ok(await until(H, () => /1 人选好|· 1 /.test(document.querySelector('#listCard .card-h').textContent), null, 4000), 'host sees A done');
+ok(await until(H, () => /· 1 人选好/.test(document.querySelector('#listCard .rc-presence').textContent), null, 4000), 'host sees A done');
 await click(H, '[data-dl="10"]');
 ok(await until(B, () => /还剩 (09|10):/.test(document.querySelector('.cd').textContent), null, 4000), 'countdown visible to members'); console.log(await B.$eval('.cd', e => e.textContent), await H.$eval('.cd', e => e.textContent));
 await H.screenshot({ path: OUT + '-host-412.png', fullPage: true });
@@ -43,9 +57,9 @@ await B.screenshot({ path: OUT + '-member-412.png' });
 await B.close();
 ok(await until(H, () => document.querySelectorAll('#listCard .dot.on').length === 2, null, 5000), 'host sees B go offline');
 // 服务器重启 → 客户端自动重连、数据保留
-if (!REMOTE) { execSync('pkill -f "[s]erver/sync-server.js" || true'); await wait(400);
+if (!REMOTE) { await wait(5500); await stopSync();
 ok(await until(H, () => !document.querySelector('#modeChip.live'), null, 6000), 'chip leaves live on server loss');
-spawn('node', ['server/sync-server.js'], { cwd: process.cwd(), env: { ...process.env, PORT: '8787', DATA: '/tmp/feast-rooms.json' }, detached: true, stdio: 'ignore' }).unref();
+startSync();
 ok(await until(H, () => document.querySelector('#modeChip.live') && document.querySelectorAll('#listCard .person').length === 3, null, 20000), 'reconnected after server restart, state persisted');
 ok(await until(A, () => document.querySelector('#modeChip.live'), null, 20000), 'member reconnected'); }
 // 锁单
@@ -65,8 +79,8 @@ await H.screenshot({ path: OUT + '-host-bill-412.png' });
 const C = await client(); await C.goto(url, { waitUntil: 'load' }); await wait(800);
 ok(await C.evaluate(() => document.getElementById('joinBtn')?.disabled === true), 'late joiner blocked while locked');
 // 离线回退：同步服务不可达
-const D = await client(); await D.goto((process.env.WEB || 'http://127.0.0.1:8000') + '/?sync=' + encodeURIComponent('http://127.0.0.1:1'), { waitUntil: 'load' });
-await click(D, '#start'); await wait(200); await D.type('#fMe', 'X'); await click(D, '#goLive');
-ok(await until(D, () => /连不上/.test(document.getElementById('toast').textContent) && document.getElementById('toast').classList.contains('on'), null, 12000) && await D.evaluate(() => !/#r=/.test(location.hash) && /离线/.test(document.querySelector('.chip').textContent)), 'fallback to link mode when sync is down (friendly DNS/network message)');
-await b.close();
+const D = await client(); await D.goto(web.url + '/?sync=' + encodeURIComponent('http://127.0.0.1:1'), { waitUntil: 'load' });
+await click(D, '#start'); await wait(200); await D.type('#fMe', 'X'); await tap(D, '.item[data-c="BM001"]');
+ok(await until(D, () => /连不上/.test(document.getElementById('toast').textContent) && document.getElementById('toast').classList.contains('on'), null, 12000) && await D.evaluate(() => !/#r=/.test(location.hash) && document.querySelector('#modeChip').classList.contains('warn')), 'fallback to link mode when sync is down (friendly DNS/network message)');
+await b.close(); await stopSync(); web.close();
 console.log(fails.length ? 'FAILS:\n' + fails.join('\n') : 'MULTI-CLIENT OK');
