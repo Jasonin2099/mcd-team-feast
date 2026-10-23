@@ -46,3 +46,10 @@ test('card: exported SVG embeds subset fonts', async () => {
   const svg = renderSVG(ctx, 'receipt', { fontCSS: css });
   assert.match(svg, /^<svg[^>]*><defs><style>@font-face/);
 });
+
+test('限流按 X-Real-IP，伪造 CF-Connecting-IP 绕不过去', () => withServer(async base => {
+  const hit = (cf, real) => fetch(base + '/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': cf, 'X-Real-IP': real }, body: JSON.stringify({ t: 'x', name: 'A' }) }).then(r => r.status);
+  let last = 0; for (let i = 0; i < 241; i++) last = await hit(`10.0.${i >> 8}.${i & 255}`, '203.0.113.9');
+  assert.equal(last, 429, '换 CF 头仍按同一真实 IP 计数');
+  assert.equal(await hit('10.9.9.9', '203.0.113.10'), 200, '其他访客不受影响');
+}));
