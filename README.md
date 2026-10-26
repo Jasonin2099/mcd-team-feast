@@ -20,7 +20,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![McDonald's MCP](https://img.shields.io/badge/麦当劳-MCP-DA291C?logo=mcdonalds&logoColor=FFC72C)](https://github.com/M-China/mcd-mcp-server)
 [![Zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
-[![Tests](https://img.shields.io/badge/tests-64%20passing-brightgreen)](test)
+[![test](https://github.com/Jasonin2099/mcd-team-feast/actions/workflows/test.yml/badge.svg)](https://github.com/Jasonin2099/mcd-team-feast/actions/workflows/test.yml)
 [![Web](https://img.shields.io/badge/在线体验-GitHub%20Pages-FFC72C)](https://jasonin2099.github.io/mcd-team-feast/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![M-CODE](https://img.shields.io/badge/M--CODE-程序员节创意开发大赛-FFC72C)](https://github.com/M-China/mcd-developer-innovation-challenge)
@@ -219,6 +219,8 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://你的域名 node 
 [![Star History Chart](https://api.star-history.com/svg?repos=Jasonin2099/mcd-team-feast&type=Date)](https://star-history.com/#Jasonin2099/mcd-team-feast&Date)
 
 ## ⚠️ 声明
+
+> 🏁 M-CODE 大赛已于 2026-10-26 结束，本作品未获名次。项目不随比赛结束停更，会作为开源工具继续维护，欢迎提 issue / PR。
 
 本项目为「麦当劳程序员节创意开发大赛」参赛作品，由参赛者独立开发，**非麦当劳官方产品**。`--mock` 与网页版中的餐品、价格与优惠券均为虚构示例；真实餐品信息、价格及供应状态以麦当劳官方渠道实时结果为准。热量数据仅供参考。详见 [CONTEST_DECLARATION.md](CONTEST_DECLARATION.md)。MIT License。
 

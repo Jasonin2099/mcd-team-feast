@@ -19,7 +19,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/Jasonin2099/mcd-team-feast?style=social)](https://github.com/Jasonin2099/mcd-team-feast/stargazers)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![Zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
-[![Tests](https://img.shields.io/badge/tests-64%20passing-brightgreen)](test)
+[![test](https://github.com/Jasonin2099/mcd-team-feast/actions/workflows/test.yml/badge.svg)](https://github.com/Jasonin2099/mcd-team-feast/actions/workflows/test.yml)
 [![Web](https://img.shields.io/badge/デモ-GitHub%20Pages-FFC72C)](https://jasonin2099.github.io/mcd-team-feast/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -212,6 +212,8 @@ PR 歓迎です。[CONTRIBUTING.md](CONTRIBUTING.md) を参照。`npm test` で 
 [![Star History Chart](https://api.star-history.com/svg?repos=Jasonin2099/mcd-team-feast&type=Date)](https://star-history.com/#Jasonin2099/mcd-team-feast&Date)
 
 ## ⚠️ 免責事項
+
+> 🏁 M-CODE コンテストは 2026-10-26 に終了しました（本作品は入賞なし）。コンテスト後も通常の OSS として引き続きメンテナンスします。Issue / PR 歓迎です。
 
 マクドナルド中国「プログラマーの日」開発コンテストの応募作品で、参加者が独自に開発したものです。**マクドナルド公式の製品ではありません。** `--mock` と Web の商品・価格・クーポンは架空のサンプルです。実際の情報は公式チャネルをご確認ください。MIT License。
 

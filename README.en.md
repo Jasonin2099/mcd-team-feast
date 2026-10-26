@@ -20,7 +20,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![McDonald's China MCP](https://img.shields.io/badge/McDonald's%20China-MCP-DA291C?logo=mcdonalds&logoColor=FFC72C)](https://github.com/M-China/mcd-mcp-server)
 [![Zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
-[![Tests](https://img.shields.io/badge/tests-64%20passing-brightgreen)](test)
+[![test](https://github.com/Jasonin2099/mcd-team-feast/actions/workflows/test.yml/badge.svg)](https://github.com/Jasonin2099/mcd-team-feast/actions/workflows/test.yml)
 [![Web](https://img.shields.io/badge/demo-GitHub%20Pages-FFC72C)](https://jasonin2099.github.io/mcd-team-feast/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -213,6 +213,8 @@ PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm test` runs 64 zero-
 [![Star History Chart](https://api.star-history.com/svg?repos=Jasonin2099/mcd-team-feast&type=Date)](https://star-history.com/#Jasonin2099/mcd-team-feast&Date)
 
 ## ⚠️ Disclaimer
+
+> 🏁 The M-CODE contest ended on 2026-10-26; this entry did not place. The project carries on as a regular open-source tool — issues and PRs are welcome.
 
 An entry for McDonald's China's Programmer's Day developer contest, built independently — **not an official McDonald's product**. Items, prices and coupons in `--mock` and the web app are fictional; real availability and prices come from official McDonald's channels. Calorie data is for reference only. MIT License.
 
