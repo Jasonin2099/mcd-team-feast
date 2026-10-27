@@ -206,7 +206,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://your.site node ser
 
 <a href="https://github.com/Jasonin2099/mcd-team-feast/graphs/contributors"><img src="https://contrib.rocks/image?repo=Jasonin2099/mcd-team-feast" alt="contributors" /></a>
 
-PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm test` runs 64 zero-dependency tests (Node 18+).
+PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). `npm test` runs 67 zero-dependency tests (Node 18+).
 
 ## 📈 Star History
 

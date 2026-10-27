@@ -1,7 +1,8 @@
 // 录 README 的实时拼单演示：三个客户端（团长/小李/Mia）逐步截图 + frames.json（每帧的步骤标题和停留时长）
-// 用法：CHROME=<chrome 路径> node scripts/record-demo.mjs [输出目录]，再 python scripts/compose-demo.py <输出目录>
+// 用法：[CHROME=<chrome 路径>] node scripts/record-demo.mjs [输出目录]，再 python scripts/compose-demo.py <输出目录>
 // 需 npm i --no-save puppeteer-core；默认在本机起网页静态服务和同步服务（:8788），录完关掉
 import puppeteer from 'puppeteer-core';
+import { chromePath } from './chrome.mjs';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -13,7 +14,7 @@ const SYNC = 'http://127.0.0.1:8788';
 const sync = spawn(process.execPath, ['server/sync-server.js'], { env: { ...process.env, PORT: '8788', DATA: '' }, stdio: 'ignore' });
 const web = await serve(); const BASE = web.url + '/?sync=' + encodeURIComponent(SYNC);
 const W = 390, H = 760; const wait = ms => new Promise(r => setTimeout(r, ms));
-const b = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+const b = await puppeteer.launch({ executablePath: chromePath(), args: ['--no-sandbox'] });
 async function client() {
   const ctx = await b.createBrowserContext(); const p = await ctx.newPage();
   await p.setViewport({ width: W, height: H, deviceScaleFactor: 2, isMobile: true, hasTouch: true });

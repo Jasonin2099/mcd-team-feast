@@ -9,6 +9,7 @@
 - 同步服务：限流按 nginx 设置的 `X-Real-IP` 计，不再信任客户端可伪造的 `CF-Connecting-IP`
 - QA 脚本自带静态服务，Windows 上也能跑；README 演示动图可复现（`scripts/record-demo.mjs`）
 - CI：Node 18/20/22/24 和 Windows 上跑测试，外加一次 mock CLI 冒烟
+- `npm run qa` / `npm run qa:multi`：浏览器 QA 脚本自动找 Chrome（也认 Edge、Chromium），不用再设 `CHROME`
 
 ## 0.2.2 — 2026-10-23
 

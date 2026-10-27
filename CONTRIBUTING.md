@@ -14,13 +14,13 @@ node bin/cli.js demo --mock --theme all --out out
 
 ```bash
 npm i --no-save puppeteer-core          # 只装到 node_modules，不改 package.json
-CHROME="/path/to/chrome" node scripts/web-qa.mjs          # 单页：3 种宽度 × 深浅色、溢出/遮挡、导出图片
-CHROME="/path/to/chrome" node scripts/web-qa-multi.mjs    # 多人房间：并发点单、断线重连、锁单
+npm run qa          # 单页：3 种宽度 × 深浅色、溢出/遮挡、导出图片
+npm run qa:multi    # 多人房间：并发点单、断线重连、锁单
 ```
 
 重录 README 的实时演示动画：`node scripts/record-demo.mjs shots/rec` 录三端截图，再 `NOTO_CJK_DIR=… python scripts/compose-demo.py shots/rec` 合成 `assets/realtime-demo.webp`。
 
-两个脚本都会自己起本地静态服务；`web-qa-multi` 还会在 `:8787` 起一个本地同步服务，测完关掉。截图默认写到 `shots/`（`OUT=` 可改）。
+Chrome 会在常见安装位置自动找（Windows / macOS / Linux，也认 Edge、Chromium），找不到时用 `CHROME=<路径>` 指定。两个脚本都会自己起本地静态服务；`web-qa-multi` 还会在 `:8787` 起一个本地同步服务，测完关掉。截图默认写到 `shots/`（`OUT=` 可改）。
 
 - 网页地址加 `?sync=off` 可关掉实时同步，只用链接分享，不会连线上同步服务。
 - 改了网页文案或菜单后，若出现新汉字，需重新生成字体子集：从 [notofonts/noto-cjk](https://github.com/notofonts/noto-cjk) 下载 `Sans/OTC/NotoSansCJK-Regular.ttc` 和 `-Bold.ttc`，然后

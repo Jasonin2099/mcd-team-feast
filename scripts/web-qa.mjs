@@ -1,9 +1,10 @@
 import puppeteer from 'puppeteer-core';
+import { chromePath } from './chrome.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { serve } from './serve.mjs';
-// 用法：CHROME=<chrome 路径> node scripts/web-qa.mjs [前缀]  （需 npm i --no-save puppeteer-core）
+// 用法：[CHROME=<chrome 路径>] node scripts/web-qa.mjs [前缀]  （需 npm i --no-save puppeteer-core）
 // 不给 BASE 时自己起静态服务；?sync=off 走纯链接模式，不会去线上同步服务开房间
 let BASE = process.env.BASE, srv;
 if (!BASE) { srv = await serve(); BASE = srv.url + '/index.html?sync=off'; }
@@ -14,7 +15,7 @@ const longName = '超级无敌长名字的全栈工程师兼产品经理兼运�
 const many = []; for (let i = 0; i < 40; i++) for (const c of ['BM001', 'SN002', 'DR002', 'DS003']) many.push([i === 0 ? longName : `同事${i}号(部门${i % 7})`, c, 1 + (i % 3)]);
 const stress = BASE + '#' + b64e(JSON.stringify({ t: '一个非常非常长的团名用来测试换行和截断效果的场景', o: longName, p: many }));
 const problems = [];
-const b = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+const b = await puppeteer.launch({ executablePath: chromePath(), args: ['--no-sandbox'] });
 async function check(p, label) {
   const r = await p.evaluate(() => {
     const txt = document.body.innerText; const bad = [];

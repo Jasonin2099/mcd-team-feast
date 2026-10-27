@@ -1,10 +1,11 @@
 import puppeteer from 'puppeteer-core';
+import { chromePath } from './chrome.mjs';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { serve } from './serve.mjs';
-// 用法：CHROME=<chrome 路径> node scripts/web-qa-multi.mjs [前缀]  （需 npm i --no-save puppeteer-core）
+// 用法：[CHROME=<chrome 路径>] node scripts/web-qa-multi.mjs [前缀]  （需 npm i --no-save puppeteer-core）
 // 默认在本机起网页静态服务 + 同步服务（:8787）；给 SYNC / WEB 可改测远端
 const SYNC = process.env.SYNC || 'http://127.0.0.1:8787'; const REMOTE = !SYNC.includes('127.0.0.1');
 const web = process.env.WEB ? { url: process.env.WEB, close() {} } : await serve();
@@ -18,7 +19,7 @@ const OUT = (process.env.OUT || 'shots') + '/' + (process.argv[2] || 'room'); fs
 const wait = ms => new Promise(r => setTimeout(r, ms));
 if (!REMOTE) await wait(500);
 const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? '✓ ' : '✗ ') + m); };
-const b = await puppeteer.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+const b = await puppeteer.launch({ executablePath: chromePath(), args: ['--no-sandbox'] });
 async function client(scheme = 'light') { const ctx = await b.createBrowserContext(); const p = await ctx.newPage(); await p.setViewport({ width: 412, height: 915, deviceScaleFactor: 1 }); await p.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }]); p.on('pageerror', e => fails.push('pageerror ' + e.message)); p.on('dialog', d => d.accept()); await p.evaluateOnNewDocument(() => { try { localStorage.feastLang = 'zh'; } catch {} }); return p; }
 // 真实鼠标点击（会让昵称框失焦 → 自动建房）；先滚到屏幕中间，免得被底部操作栏挡住
 const tap = async (p, sel) => { await p.$eval(sel, e => e.scrollIntoView({ block: 'center' })); await p.click(sel); };
