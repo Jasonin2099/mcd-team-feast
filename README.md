@@ -212,7 +212,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://你的域名 node 
 
 <a href="https://github.com/Jasonin2099/mcd-team-feast/graphs/contributors"><img src="https://contrib.rocks/image?repo=Jasonin2099/mcd-team-feast" alt="contributors" /></a>
 
-欢迎 PR：新主题、新彩蛋命令、更聪明的分账规则，详见 [CONTRIBUTING.md](CONTRIBUTING.md)，改了什么见 [CHANGELOG.md](CHANGELOG.md)。`npm test` 跑测试（67 个用例，零依赖，Node 18+）。
+欢迎 PR：新主题、新彩蛋命令、更聪明的分账规则，详见 [CONTRIBUTING.md](CONTRIBUTING.md)，改了什么见 [CHANGELOG.md](CHANGELOG.md)。`npm test` 跑测试（83 个用例，零依赖，Node 18+）。
 
 ## 📈 Star History
 
