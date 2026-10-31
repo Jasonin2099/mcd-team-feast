@@ -32,6 +32,15 @@ test('推送静默：超时后兜底拉全量，发现落后就重连', async ()
   r.watchdog(); await new Promise(x => setTimeout(x, 10));
   assert.equal(r.state.rev, 7); assert.ok(FakeES.all.length > n); r.close();
 });
+test('断线重连退避：首次 1s，之后翻倍，封顶 15s', async () => {
+  assert.deepEqual([1, 2, 3, 4, 5, 6].map(Room.retryDelay), [1000, 2000, 4000, 8000, 15000, 15000]);
+  // 复现：服务器关掉推送流后，第一次重连排在多久之后
+  const r = new Room('abcdefgh'); r.connect(); const es = FakeES.all.at(-1); es.emit('state', st(1));
+  const real = globalThis.setTimeout; let delay = null;
+  globalThis.setTimeout = (f, ms) => { if (f.toString().includes('connect')) delay = ms; return real(() => {}, 0); };
+  try { es.readyState = FakeES.CLOSED; await es.onerror(); } finally { globalThis.setTimeout = real; }
+  assert.equal(delay, 1000); assert.equal(r.status, 'reconnecting'); r.close();
+});
 test('UI 不再有实时同步开关文案', async () => {
   const { readFileSync } = await import('node:fs');
   const src = readFileSync(new URL('../web/app.js', import.meta.url), 'utf8') + readFileSync(new URL('../web/i18n.js', import.meta.url), 'utf8');

@@ -205,7 +205,7 @@ PORT=8787 DATA=/var/lib/feast-sync/rooms.json ORIGINS=https://your.site node ser
 
 <a href="https://github.com/Jasonin2099/mcd-team-feast/graphs/contributors"><img src="https://contrib.rocks/image?repo=Jasonin2099/mcd-team-feast" alt="contributors" /></a>
 
-PR 歓迎です。[CONTRIBUTING.md](CONTRIBUTING.md) を参照。`npm test` で 87 件のテスト（依存ゼロ・Node 18+）。
+PR 歓迎です。[CONTRIBUTING.md](CONTRIBUTING.md) を参照。`npm test` で 88 件のテスト（依存ゼロ・Node 18+）。
 
 ## 📈 Star History
 

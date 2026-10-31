@@ -53,7 +53,9 @@ export class Room extends EventTarget {
     if (!this.wd) this.wd = setInterval(() => this.watchdog(), 1000);
   }
   stale() { return Date.now() - (this.lastMsg || 0) > Room.STALE_MS; }
-  retry() { this.tries++; this.set('reconnecting'); clearTimeout(this.rt); this.rt = setTimeout(() => this.connect(), Math.min(15000, 1000 * 2 ** this.tries)); }
+  // 退避 1s、2s、4s… 封顶 15s。之前首次就等 2s（2 ** 1），再加上先查房间是否还在的那次请求，断线后约 2.7s 才重连。
+  static retryDelay(tries) { return Math.min(15000, 1000 * 2 ** (tries - 1)); }
+  retry() { this.tries++; this.set('reconnecting'); clearTimeout(this.rt); this.rt = setTimeout(() => this.connect(), Room.retryDelay(this.tries)); }
   watchdog() {
     if (this.status === 'gone' || typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     if (Date.now() - (this.lastMsg || 0) > Room.STALE_MS && Date.now() - (this.lastPoll || 0) >= Room.POLL_MS) this.refresh(true);
