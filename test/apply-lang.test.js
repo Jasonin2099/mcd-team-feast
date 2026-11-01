@@ -9,7 +9,8 @@ import { I18N } from '../web/i18n.js';
 // applyLang source against a tiny fake document built from index.html.
 const read = f => readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 const HTML = read('index.html');
-const APP = read('web/app.js');
+// normalise CRLF (Windows checkouts) so the regex below matches
+const APP = read('web/app.js').replace(/\r\n/g, '\n');
 
 const src = /\nfunction applyLang\(\) \{\n[\s\S]*?\n\}\n/.exec(APP)?.[0];
 const langButtons = [...HTML.matchAll(/<button data-l="(\w+)"/g)].map(m => m[1]);
